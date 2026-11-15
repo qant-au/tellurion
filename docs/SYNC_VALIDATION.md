@@ -125,7 +125,7 @@ bit-exact with the fleet. Linux runs used upstream's own build image under
 emulation. Streflop: `scripts/run-synctest.sh` is BIT-EXACT against the x86
 SSE reference (47,852 common tests) and the NEON reference (52,080).
 
-### 3b. Engine 2026.09.02, verified 2026-11-10 (this repository, commit `5ae54cd976`)
+### 3b. Engine 2026.09.02, verified 2026-11-10 (this repository, commit `eacc6c4937`)
 
 After merging upstream 2026.09.02 into the macOS layer, a public fleet replay
 recorded on 2026.09.02 (BAR's Engine Test channel) was re-simulated on the
@@ -139,7 +139,7 @@ both players.
 | 1v1, Glacial Gap v1.1 (13.6 min, game `test-31836-b250a16`, recorded 2026-11-08) | this repository, macOS arm64 | REPLAY_SYNC_OK, game end frame 24,503, 0 desyncs (77 s at 20x) |
 | same | **this repository, amd64 Linux** (gcc 13.1, upstream's build image, emulated) | REPLAY_SYNC_OK, game end frame 24,503, 0 desyncs (104 s at 20x) |
 
-Run again on 2026-11-10 at commit `93e9333d83`, after the changes listed in
+Run again on 2026-11-10 at commit `f4864d2aff`, after the changes listed in
 Appendix A (the heading helper among them) and the cleanup of the layer: the
 same two rows, the same result (game end frame 24,503, 0 desyncs, 580
 checksums compared), with the libm parity gate now at 21 of 21 lines. The
@@ -227,7 +227,7 @@ of these paths changes:
         'rts/Lua/LuaSynced*.cpp' rts/System/Sync rts/System/FastMath.h \
         rts/Net/GameServer.cpp rts/System/SpringMath.h rts/System/SpringMath.inl
 
-Measured against `2026.09.02` at commit `f43cda0bd8`. `rts/lib/streflop` is
+Measured against `2026.09.02` at commit `0f34580131`. `rts/lib/streflop` is
 unchanged: it is the same submodule commit as the tag.
 
 | Change | Files | Applies to | Why the fleet's x86 results are unchanged |
