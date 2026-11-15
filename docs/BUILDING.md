@@ -233,7 +233,8 @@ Support switches. All are unset by default, and all are in release builds.
 | `SPRING_MAC_NO_LUAINTRO=1` | Skip the Lua loading screen. |
 | `SPRING_ALLOW_SOFTWARE_GL=1` | Allow a software renderer instead of failing at start. |
 | `SPRING_EGL_FULL_TEARDOWN=1` | Tear EGL down fully at exit instead of the fast exit. |
-| `SPRING_NO_STALL_LOG=1` | Silence the log lines for draw gaps over 150 ms (macOS builds only; other platforms do not log them). |
+| `SPRING_NO_STALL_LOG=1` | Silence the log lines for draw gaps over 150 ms (macOS builds only; other platforms do not log them). By default only the first gap is logged and a total (with the longest gap) is written at exit, because every log line also shows in BAR's in-game console. |
+| `SPRING_STALL_LOG_ALL=1` | Log every draw gap over 150 ms, each with its time, for a hitch investigation (macOS builds only). |
 | `SPRING_MAC_SRGB_LAYER=1` | Tag the window's Metal layer as sRGB, so the system colour-matches the picture to the display. Off by default until compared by eye on a wide-gamut panel. |
 | `SPRING_MAC_STREAM_BUFFERING=n` | Stream-buffer ring depth, 2 to 8 (default 3). |
 | `SPRING_MAC_UPLOAD_BUFFERING=n` | Ring depth for the model-data upload buffers (minimum 3). |

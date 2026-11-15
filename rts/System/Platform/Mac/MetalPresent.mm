@@ -657,9 +657,8 @@ void MacMetalPresent_PresentIOSurface(bool flipY)
 	// so a frame is only dropped when the display is not taking any.
 	if (!TakePresentSlot()) {
 		g_presentSkips++;
-		if ((g_presentSkips & (g_presentSkips - 1)) == 0) // log 1,2,4,8,...
-			LOG("[MetalPresent] dropped present (compositor 2 behind) x%llu",
-					(unsigned long long)g_presentSkips);
+		if (g_presentSkips == 1) // the rest are counted; total at exit (Shutdown)
+			LOG("[MetalPresent] dropped present (compositor 2 behind; later ones are counted, total at exit)");
 		g_ioCur = (g_ioCur + 1) % IO_SLOTS;
 		return;
 	}
@@ -833,9 +832,8 @@ bool MacMetalPresent_PresentPixelBuffer(void* base, size_t len, int w, int h,
 	// same budget-2 drop policy as the IOSurface path (see PresentIOSurface)
 	if (!TakePresentSlot()) {
 		g_presentSkips++;
-		if ((g_presentSkips & (g_presentSkips - 1)) == 0)
-			LOG("[MetalPresent] dropped present (compositor 2 behind) x%llu",
-					(unsigned long long)g_presentSkips);
+		if (g_presentSkips == 1) // the rest are counted; total at exit (Shutdown)
+			LOG("[MetalPresent] dropped present (compositor 2 behind; later ones are counted, total at exit)");
 		return true; // frame dropped by policy, not a path failure
 	}
 
@@ -939,6 +937,9 @@ static bool DrainPresents(uint64_t waitNanos)
 
 void MacMetalPresent_Shutdown(void)
 {
+	if (g_presentSkips > 0)
+		LOG("[MetalPresent] dropped present (compositor 2 behind) %llu time(s) this session",
+				(unsigned long long)g_presentSkips);
 	// nothing queued may run against a window that is being destroyed
 	if (!DrainPresents(500ull * NSEC_PER_MSEC))
 		LOG_L(L_WARNING, "[MetalPresent] a present was still in flight at shutdown");

@@ -325,6 +325,10 @@ int GpuCoreCount()
 } // anonymous namespace
 
 
+// Times the present path waited on an unsignalled pack fence (GPU behind);
+// the first is logged, the total once at exit (DestroyContext).
+static uint64_t g_fenceWaits = 0;
+
 namespace MacPresent {
 
 bool CreateContext(SDL_Window* window)
@@ -581,6 +585,9 @@ bool CreateContext(SDL_Window* window)
 
 void DestroyContext()
 {
+	if (g_fenceWaits > 0)
+		LOG_L(L_INFO, "[MacPresent] pack fence not signaled (GPU behind) %llu time(s) this session",
+		        (unsigned long long)g_fenceWaits);
 	MacMetalPresent_Shutdown();
 	if (eglDpy != EGL_NO_DISPLAY) {
 		eglMakeCurrent(eglDpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
@@ -1103,15 +1110,14 @@ bool DirectPresentFrame(int rdW, int rdH, GLenum readFormat, int lagFrames)
 			SCOPED_TIMER("Misc::SwapBuffers::MacFenceWait");
 			if (dpFence[old] != nullptr &&
 			    glClientWaitSync(dpFence[old], GL_SYNC_FLUSH_COMMANDS_BIT, 0) == GL_TIMEOUT_EXPIRED) {
-				static uint64_t fenceWaits = 0;
-				++fenceWaits;
-				// L_INFO, not L_WARNING: this fires whenever the GPU render can't keep
-				// the frame budget (a normal perf symptom on a heavy scene, not an
-				// error). At L_WARNING it spammed the on-screen console; keep it in the
-				// log (rate-limited to powers of two) for perf diagnosis only.
-				if ((fenceWaits & (fenceWaits - 1)) == 0) // log 1,2,4,8,...
-					LOG_L(L_INFO, "[MacPresent] lag-%d pack fence not signaled - waiting (GPU behind, x%llu)",
-					        lagFrames, (unsigned long long)fenceWaits);
+				++g_fenceWaits;
+				// A normal perf symptom on a heavy scene, not an error. Every engine
+				// log line reaches BAR's in-game console, so only the first one is
+				// logged; the rest are counted and summarised once at exit
+				// (DestroyContext).
+				if (g_fenceWaits == 1)
+					LOG_L(L_INFO, "[MacPresent] lag-%d pack fence not signaled - waiting (GPU behind; later ones are counted, total at exit)",
+					        lagFrames);
 				if (glClientWaitSync(dpFence[old], GL_SYNC_FLUSH_COMMANDS_BIT, 100000000ull) == GL_TIMEOUT_EXPIRED) {
 					// pathological (>100ms): use the newest COMPLETED older slot
 					// instead of reading a buffer mid-write; skip if none

@@ -418,6 +418,11 @@ CGlobalRendering::CGlobalRendering()
 	SetDualScreenParams();
 }
 
+// [stall] draw-gap tally (first one logged in full, the total at exit)
+static uint32_t s_stallCount = 0;
+static float    s_stallMaxMs = 0.0f;
+static uint32_t s_stallMaxFrame = 0;
+
 CGlobalRendering::~CGlobalRendering()
 {
 	configHandler->RemoveObserver(this);
@@ -709,6 +714,10 @@ void CGlobalRendering::DestroyWindowAndContext() {
 	if (!sdlWindow)
 		return;
 
+	if (s_stallCount > 0)
+		LOG_L(L_INFO, "[stall] %u draw gap(s) over 150ms this session, longest %.0fms at drawFrame=%u",
+			s_stallCount, s_stallMaxMs, s_stallMaxFrame);
+
 	WindowManagerHelper::SetIconSurface(sdlWindow, nullptr);
 	SetWindowInputGrabbing(false);
 
@@ -868,9 +877,18 @@ void CGlobalRendering::SwapBuffers(bool allowSwapBuffers, bool clearErrors)
 		if (lastSwapBuffersEnd.toMilliSecsi() > 0) {
 			const float gapMs = (nowST - lastSwapBuffersEnd).toMilliSecsf();
 			if (s_stallLog && gapMs > 150.0f) {
-				static uint32_t s_stallCount = 0;
+				// Every engine log line reaches BAR's in-game console, so only the
+				// first stall is logged; the rest are counted and summarised once
+				// at exit (DestroyWindowAndContext). SPRING_STALL_LOG_ALL=1 logs
+				// every one, with its time, for a hitch investigation.
+				static const bool s_stallAll = (getenv("SPRING_STALL_LOG_ALL") != nullptr);
 				++s_stallCount;
-				LOG_L(L_WARNING, "[stall] draw gap %.0fms (drawFrame=%u, stalls=%u)", gapMs, drawFrame, s_stallCount);
+				if (gapMs > s_stallMaxMs) {
+					s_stallMaxMs = gapMs;
+					s_stallMaxFrame = drawFrame;
+				}
+				if (s_stallAll || s_stallCount == 1)
+					LOG_L(L_WARNING, "[stall] draw gap %.0fms (drawFrame=%u, stalls=%u)", gapMs, drawFrame, s_stallCount);
 			}
 			if (s_hitchMs > 0.0f) {
 				// collect every frame so the next one starts from zero

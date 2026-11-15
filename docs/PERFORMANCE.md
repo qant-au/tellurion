@@ -238,7 +238,7 @@ Tools that exist in the tree:
   `Misc::SwapBuffers`, so a slow swap can be split into the pack, the wait for
   the GPU and the Metal present.
 - **Stall log.** A gap of more than 150 ms between drawn frames is logged as
-  `[stall] draw gap ...`. `SPRING_NO_STALL_LOG=1` turns it off.
+  `[stall] draw gap ...`: the first one in full, then a total and the longest gap at exit (every log line also reaches BAR's in-game console). `SPRING_STALL_LOG_ALL=1` logs every one with its time; `SPRING_NO_STALL_LOG=1` turns it off.
 - **Fixed conditions.** `SPRING_MAC_PERF_PIN=1` turns display sync off, pins the
   colour space and the layer scale, and so removes the attached monitor from
   the result. It tears, so never use it for play.
