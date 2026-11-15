@@ -29,11 +29,11 @@ build. The private half signs the feed.
 
 ```sh
 make app                                                   # builds the updater tool
-release-artifacts/Accurona.app/Contents/MacOS/updater keygen --out ~/.accurona/update-signing.key
+release-artifacts/Tellurion.app/Contents/MacOS/updater keygen --out ~/.tellurion/update-signing.key
 ```
 
 `keygen` prints the public key: commit it as `packaging/update-public-key`.
-The private key stays on the release machine (`ACCURONA_UPDATE_SIGNING_KEY`
+The private key stays on the release machine (`TELLURION_UPDATE_SIGNING_KEY`
 names another path). **Back it up.** If it is lost, installed apps can never
 update in-app again; they still see the "new version needed" notice and can
 download by hand. To replace a key, ship one release signed with the old key
@@ -99,8 +99,8 @@ Its game version and map must be in the app's data folder.
 
    | File | What It Is |
    |---|---|
-   | `Accurona-v<version>.dmg` | The installer players download. |
-   | `Accurona-v<version>.zip` | The archive the in-app updater downloads. Its name and address are in the feed. |
+   | `Tellurion-v<version>.dmg` | The installer players download. |
+   | `Tellurion-v<version>.zip` | The archive the in-app updater downloads. Its name and address are in the feed. |
    | `appcast.json` | The signed update feed. It must be an asset of the newest release, because installs read `releases/latest/download/appcast.json`. |
    | `Recoil-macos-<engine>-port<version>.zip` | The engine-only bundle, when published. |
 

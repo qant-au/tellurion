@@ -14,7 +14,7 @@ TAG=${3:?release tag}
 HERE=$(cd "$(dirname "$0")" && pwd)
 BAR="$(cd "$HERE/.." && pwd)"
 MANIFEST="$HERE/LICENSES/MANIFEST.tsv"
-REPO_URL="https://github.com/qant-au/RecoilEngine-AppleSilicon"
+REPO_URL="https://github.com/qant-au/tellurion"
 OUT="$BUNDLE/Contents/Resources/NOTICE"
 [ -d "$BUNDLE/Contents/Frameworks" ] || { echo "FATAL: $BUNDLE has no Contents/Frameworks"; exit 1; }
 
@@ -26,7 +26,7 @@ row_for() {
 }
 
 case "$PROFILE" in
-  bar)    TITLE="NOTICE: Accurona, a macOS build of the Recoil engine with a helper for Beyond All Reason";;
+  bar)    TITLE="NOTICE: Tellurion, a macOS build of the Recoil engine with a helper for Beyond All Reason";;
   engine) TITLE="NOTICE: Recoil engine for macOS";;
   *) echo "FATAL: unknown profile $PROFILE"; exit 1;;
 esac

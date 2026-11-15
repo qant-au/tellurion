@@ -30,7 +30,7 @@
 // launch carries on. An update is never forced.
 //
 // Usage:
-//   updater check --feed <url|file://> --key-file <path> --app <Accurona.app>
+//   updater check --feed <url|file://> --key-file <path> --app <Tellurion.app>
 //                 --current <version> --seen-file <path> [--wait-pid <pid>]
 //                 [--timeout <sec>] [--download-base <https url>]
 //                 [--yes] [--no-relaunch]
@@ -72,7 +72,7 @@ struct Feed: Codable {
 // each written as "name:<byte count>:<value>" so no value can run into the
 // next. The archive itself is covered through its SHA-256.
 func signedBytes(_ f: Feed) -> Data {
-    var s = "accurona-update-feed-\(f.schema)\n"
+    var s = "tellurion-update-feed-\(f.schema)\n"
     for (name, value) in [("version", f.version), ("url", f.url), ("length", String(f.length)),
                           ("sha256", f.sha256.lowercased()), ("date", f.date),
                           ("minimumSystemVersion", f.minimumSystemVersion ?? ""), ("notes", f.notes ?? "")] {
@@ -83,7 +83,7 @@ func signedBytes(_ f: Feed) -> Data {
 
 // Releases are published as GitHub release assets; --download-base names
 // another place for a build that publishes elsewhere.
-let defaultDownloadBase = "https://github.com/qant-au/RecoilEngine-AppleSilicon/releases/download"
+let defaultDownloadBase = "https://github.com/qant-au/tellurion/releases/download"
 
 // An archive is fetched only over https from under the download base. A feed
 // that was itself read from a local file (a test, or a build pointed at one)
@@ -159,7 +159,7 @@ func readKey(_ path: String) -> Data? {
 func fetch(_ url: URL, timeout: Double) -> Data? {
     if url.isFileURL { return try? Data(contentsOf: url) }
     var req = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: timeout)
-    req.setValue("Accurona-updater", forHTTPHeaderField: "User-Agent")
+    req.setValue("Tellurion-updater", forHTTPHeaderField: "User-Agent")
     let sem = DispatchSemaphore(value: 0)
     var out: Data?
     URLSession.shared.dataTask(with: req) { d, r, _ in
@@ -307,7 +307,7 @@ func failNotice(_ why: String) -> Never {
     if ui {
         let a = NSAlert()
         a.messageText = "The update could not be installed"
-        a.informativeText = "\(why)\n\nAccurona \(current) will start as normal."
+        a.informativeText = "\(why)\n\nTellurion \(current) will start as normal."
         a.addButton(withTitle: "Continue")
         _ = present(a)
     }
@@ -319,8 +319,8 @@ if ui {
     app!.setActivationPolicy(.regular)
     app!.activate(ignoringOtherApps: true)
     let a = NSAlert()
-    a.messageText = "Accurona \(feed.version) is available"
-    var body = "You have \(current). The update downloads \(ByteCountFormatter.string(fromByteCount: Int64(feed.length), countStyle: .file)), then Accurona restarts."
+    a.messageText = "Tellurion \(feed.version) is available"
+    var body = "You have \(current). The update downloads \(ByteCountFormatter.string(fromByteCount: Int64(feed.length), countStyle: .file)), then Tellurion restarts."
     if let n = feed.notes, !n.isEmpty { body += "\n\n" + n }
     a.informativeText = body
     a.addButton(withTitle: "Update Now")
@@ -350,8 +350,8 @@ if zipURL.isFileURL {
     var panel: NSPanel?
     if ui {
         let p = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 360, height: 128), styleMask: [.titled], backing: .buffered, defer: false)
-        p.title = "Updating Accurona"
-        let label = NSTextField(labelWithString: "Downloading Accurona \(feed.version)…")
+        p.title = "Updating Tellurion"
+        let label = NSTextField(labelWithString: "Downloading Tellurion \(feed.version)…")
         label.frame = NSRect(x: 20, y: 90, width: 320, height: 18)
         let bar = NSProgressIndicator(frame: NSRect(x: 20, y: 62, width: 320, height: 20))
         bar.isIndeterminate = false; bar.minValue = 0; bar.maxValue = 100
@@ -449,7 +449,7 @@ exit 1
 """
 let p = Process()
 p.executableURL = URL(fileURLWithPath: "/bin/sh")
-p.arguments = ["-c", script, "accurona-swap", arg("--wait-pid") ?? "", appURL.path, newApp, backup,
+p.arguments = ["-c", script, "tellurion-swap", arg("--wait-pid") ?? "", appURL.path, newApp, backup,
                has("--no-relaunch") ? "0" : "1", stage.path, seenFile ?? "", feed.version]
 p.standardOutput = FileHandle.nullDevice
 p.standardError = FileHandle.nullDevice

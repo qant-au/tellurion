@@ -17,7 +17,7 @@ import urllib.request
 
 API = "https://api.bar-rts.com"
 CDN = "https://storage.uk.cdn.beyondallreason.dev/replays/"
-UA = {"User-Agent": "replay-finder (RecoilEngine-AppleSilicon sync validation)"}
+UA = {"User-Agent": "replay-finder (Tellurion sync validation)"}
 
 
 def get(path):

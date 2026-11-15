@@ -1,7 +1,7 @@
 #!/bin/bash
 # release-build.sh — end-to-end signed/notarized release artifact pipeline.
 #
-# Produces Accurona.app (staged, signed, optionally notarized) from
+# Produces Tellurion.app (staged, signed, optionally notarized) from
 # the pinned engine tree + pinned/patched Mesa:
 #   build (via scripts/build-engine.sh: -O3 RELWITHDEBINFO, gcc dbl-64 swap,
 #   dfp-verify fleet-parity gate) → [sync-test] → [replay certification] →
@@ -107,7 +107,7 @@ ENABLE_ONLINE="${BAR_ONLINE:-0}"
 # messages.json each launch. Default = the port's GitHub repo. Override with
 # --messages-config <https-url> or --messages-local <path> (a local file,
 # baked as a file:// URL — for testing builds against an unpublished config).
-DEFAULT_MESSAGES_CONFIG="https://raw.githubusercontent.com/qant-au/RecoilEngine-AppleSilicon/main/message-config/messages.json"
+DEFAULT_MESSAGES_CONFIG="https://raw.githubusercontent.com/qant-au/tellurion/main/message-config/messages.json"
 MESSAGES_CONFIG="${BAR_MESSAGES_CONFIG:-$DEFAULT_MESSAGES_CONFIG}"
 # In-app updater (packaging/updater.swift). The app checks UPDATE_FEED
 # each launch; the release key's PUBLIC half (packaging/update-public-key) is
@@ -115,10 +115,10 @@ MESSAGES_CONFIG="${BAR_MESSAGES_CONFIG:-$DEFAULT_MESSAGES_CONFIG}"
 # a signed appcast.json beside the zip. Publish both with the release: the
 # zip at UPDATE_DOWNLOAD_BASE/v<port>/, appcast.json as a release asset so
 # releases/latest/download/appcast.json always names the newest one.
-DEFAULT_UPDATE_FEED="https://github.com/qant-au/RecoilEngine-AppleSilicon/releases/latest/download/appcast.json"
-UPDATE_FEED="${ACCURONA_UPDATE_FEED:-$DEFAULT_UPDATE_FEED}"
-UPDATE_DOWNLOAD_BASE="${ACCURONA_UPDATE_DOWNLOAD_BASE:-https://github.com/qant-au/RecoilEngine-AppleSilicon/releases/download}"
-UPDATE_SIGNING_KEY="${ACCURONA_UPDATE_SIGNING_KEY:-$HOME/.accurona/update-signing.key}"
+DEFAULT_UPDATE_FEED="https://github.com/qant-au/tellurion/releases/latest/download/appcast.json"
+UPDATE_FEED="${TELLURION_UPDATE_FEED:-$DEFAULT_UPDATE_FEED}"
+UPDATE_DOWNLOAD_BASE="${TELLURION_UPDATE_DOWNLOAD_BASE:-https://github.com/qant-au/tellurion/releases/download}"
+UPDATE_SIGNING_KEY="${TELLURION_UPDATE_SIGNING_KEY:-$HOME/.tellurion/update-signing.key}"
 
 # Test tiers (mirrors upstream Recoil CI: the *build* workflow only builds +
 # packages; ALL test stages are OPT-IN as of 2026-07-20 — plain builds stay
@@ -199,7 +199,7 @@ if [ "$IDENTITY" != "-" ] && [ "$PROFILE" = "bar" ] && [ "$ALLOW_RELEASE_OVERRID
 fi
 
 case "$PROFILE" in
-  bar)    APP="$OUT/Accurona.app";;
+  bar)    APP="$OUT/Tellurion.app";;
   engine) APP="$OUT/Recoil Engine.app";;
   *) echo "unknown --profile: $PROFILE (bar|engine)"; exit 2;;
 esac
@@ -734,15 +734,15 @@ echo "builder-path audit: no /Users/ path and none of this build's own folders a
 # (launcher entrypoint, BAR icon); the engine bundle is neutral Recoil (spring
 # entrypoint, no game branding, engine version user-facing).
 if [ "$PROFILE" = "bar" ]; then
-  PLIST_ID="com.accurona.app"
-  PLIST_NAME="Accurona"
+  PLIST_ID="com.tellurion.app"
+  PLIST_NAME="Tellurion"
   PLIST_EXEC="launcher"
   PLIST_SHORTVER="$PORTVER"
   PLIST_ICON_KEYS='<key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleIconName</key><string>AppIcon</string>'
-  PLIST_LAN_NAME="Accurona (and the game it launches)"
+  PLIST_LAN_NAME="Tellurion (and the game it launches)"
 else
-  PLIST_ID="com.accurona.recoil-engine"
+  PLIST_ID="com.tellurion.recoil-engine"
   PLIST_NAME="Recoil Engine"
   PLIST_EXEC="spring"
   PLIST_SHORTVER="$VERSION"
@@ -788,7 +788,7 @@ if [ "$PROFILE" = "bar" ]; then
   cp "$PKG/AppIcon.icns" "$RESOURCES/AppIcon.icns"
   echo "app icon staged: Assets.car + AppIcon.icns"
 
-  # Spotlight keywords: the app is named "Accurona" (it is not the game),
+  # Spotlight keywords: the app is named "Tellurion" (it is not the game),
   # but users will search for the game's name — kMDItemKeywords lets Spotlight
   # (and Raycast/Alfred) match "Beyond All Reason" without the app claiming
   # that name. Stored as an xattr (binary plist array); xattrs are outside the
@@ -921,7 +921,7 @@ fi
 echo "=== [6/7] notarization"
 mkdir -p "$OUT"
 if [ "$PROFILE" = "bar" ]; then
-  ZIP="$OUT/Accurona-v${PORTVER}.zip"
+  ZIP="$OUT/Tellurion-v${PORTVER}.zip"
 else
   ZIP="$OUT/Recoil-macos-${VERSION}-port${PORTVER}.zip"
 fi
@@ -959,8 +959,8 @@ if [ "$PROFILE" != "bar" ]; then
   DMG="(none — engine profile ships the notarized zip only)"
   echo "(skipped — the engine bundle is consumed by tooling/other launchers, not drag-installed)"
 else
-DMG="$OUT/Accurona-v${PORTVER}.dmg"
-VOLNAME="Install Accurona"
+DMG="$OUT/Tellurion-v${PORTVER}.dmg"
+VOLNAME="Install Tellurion"
 rm -f "$DMG"
 DMGROOT=$(mktemp -d)
 cp -R "$APP" "$DMGROOT/"

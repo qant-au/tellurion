@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Assemble messages/*.jsonc (one file per message) into the single
-messages.json that Accurona fetches.
+messages.json that Tellurion fetches.
 
 Authors edit small, focused per-message files (clean diffs, easy review even
 when there are many); this concatenates them — in filename order, so a

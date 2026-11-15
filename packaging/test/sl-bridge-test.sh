@@ -292,7 +292,7 @@ R=$(send '{"name":"ParseMiniMap","command":{"mapPath":"x.sdz","destination":"../
 [ -z "$R" ] && ok "ParseMiniMap destination outside write dir refused" || no "ParseMiniMap traversal: $R"
 
 R=$(send '{"name":"UploadLog","command":{}}')
-BR=$(ls "$WORK"/bugreport/Accurona-bug-report-*.zip 2>/dev/null | head -1)
+BR=$(ls "$WORK"/bugreport/Tellurion-bug-report-*.zip 2>/dev/null | head -1)
 # list and read the zip once: grep -q on a live unzip pipe trips pipefail
 BRLIST=$([ -n "$BR" ] && unzip -l "$BR" 2>/dev/null); BRCFG=$([ -n "$BR" ] && unzip -p "$BR" '*/springsettings.cfg' 2>/dev/null)
 echo "$R" | grep -q '"UploadLogFailed"' && echo "$R" | grep -q 'saved to' && [ -n "$BR" ] \

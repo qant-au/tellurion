@@ -1,11 +1,11 @@
-# Accurona: macOS packaging entry points.
+# Tellurion: macOS packaging entry points.
 #
 # Thin wrappers over packaging/release-build.sh (the single source of truth for
 # how the distributable is built). Everything real lives in that script; these
 # targets exist so the build is discoverable and one-command.
 #
 #   make app            # build + package (headless-safe): ad-hoc
-#                       # Accurona.app + .zip + .dmg. Fast; no GPU/content/long
+#                       # Tellurion.app + .zip + .dmg. Fast; no GPU/content/long
 #                       # tests. Runs on THIS Mac; won't pass Gatekeeper elsewhere.
 #   make certify        # certify tier (needs an Apple Silicon GPU + content):
 #                       # build + package + streflop sync test + replay
@@ -40,7 +40,7 @@ ONLINE_ARG  := $(if $(filter 1,$(ONLINE)),--enable-online,--disable-online)
 
 help:
 	@echo "macOS packaging (details: docs/BUILDING.md):"
-	@echo "  make app       build + package the BAR helper app -> release-artifacts/Accurona.app (+ .zip/.dmg)"
+	@echo "  make app       build + package the BAR helper app -> release-artifacts/Tellurion.app (+ .zip/.dmg)"
 	@echo "  make engine-dist  package the Recoil engine alone (no BAR helper/branding) -> Recoil-macos-*.zip"
 	@echo "                 fast, headless-safe, ad-hoc signed (this Mac only)"
 	@echo "  make certify   app + sync test, replay check, visual regression, GPU driver smoke (needs a GPU and a demo)"
@@ -79,4 +79,4 @@ test:
 	packaging/test/dialog-center-test.sh   # shows real windows; skips without a screen
 
 clean-artifacts:
-	rm -rf "release-artifacts/Accurona.app" release-artifacts/*.zip release-artifacts/*.dmg release-artifacts/appcast.json
+	rm -rf "release-artifacts/Tellurion.app" release-artifacts/*.zip release-artifacts/*.dmg release-artifacts/appcast.json

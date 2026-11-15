@@ -593,7 +593,7 @@ func saveBugReport(reply: @escaping (String, [String: Any]) -> Void) {
     }
     let fmt = DateFormatter(); fmt.locale = Locale(identifier: "en_US_POSIX"); fmt.dateFormat = "yyyyMMdd-HHmmss"
     let stamp = fmt.string(from: Date())   // local time: the player reads this name
-    let name = "Accurona-bug-report-\(stamp)"
+    let name = "Tellurion-bug-report-\(stamp)"
     let staging = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(name)
     try? fm.removeItem(at: staging)
     guard (try? fm.createDirectory(at: staging, withIntermediateDirectories: true)) != nil else {
@@ -635,7 +635,7 @@ func saveBugReport(reply: @escaping (String, [String: Any]) -> Void) {
     let app = Bundle.main.bundleURL.deletingLastPathComponent().deletingLastPathComponent()
     let info = Bundle(url: app)?.infoDictionary ?? [:]
     let summary = """
-        Accurona \(info["CFBundleShortVersionString"] as? String ?? "?") (engine \(engineVersion.isEmpty ? "?" : engineVersion))
+        Tellurion \(info["CFBundleShortVersionString"] as? String ?? "?") (engine \(engineVersion.isEmpty ? "?" : engineVersion))
         macOS \(ProcessInfo.processInfo.operatingSystemVersionString)
         \(run("/usr/sbin/sysctl", ["-n", "hw.model", "machdep.cpu.brand_string", "hw.memsize"]))
         \(run("/usr/sbin/system_profiler", ["SPDisplaysDataType"]))
@@ -656,7 +656,7 @@ func saveBugReport(reply: @escaping (String, [String: Any]) -> Void) {
     if env["SL_BUGREPORT_NO_REVEAL"] == nil {
         _ = run("/usr/bin/open", ["-R", zipURL.path])
     }
-    reply("UploadLogFailed", ["msg": "Online log upload is off in this build, so your logs were saved to \(zipURL.path) and shown in Finder. Please attach that file to a report at https://github.com/qant-au/RecoilEngine-AppleSilicon/issues"])
+    reply("UploadLogFailed", ["msg": "Online log upload is off in this build, so your logs were saved to \(zipURL.path) and shown in Finder. Please attach that file to a report at https://github.com/qant-au/tellurion/issues"])
 }
 
 // ---- log upload (UploadLog) --------------------------------------------------
@@ -881,11 +881,11 @@ func handle(_ name: String, _ cmd: [String: Any], from client: Client) {
             log("StartNewSpring refused: demo engine \(eng) != bundled \(engineVersion)")
             if engineNotice?.isRunning == true { return }
             // say why, instead of the replay silently doing nothing (Vandomas issue #21)
-            let msg = "This replay was recorded on engine \(eng.isEmpty ? "(unknown)" : eng). Accurona can only play replays recorded on engine \(engineVersion)."
+            let msg = "This replay was recorded on engine \(eng.isEmpty ? "(unknown)" : eng). Tellurion can only play replays recorded on engine \(engineVersion)."
             // passed as an argv item, not spliced into the script: no quoting issues
             let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
             p.arguments = ["-e", "on run argv",
-                           "-e", "display dialog (item 1 of argv) buttons {\"OK\"} default button 1 with title \"Accurona\" with icon note",
+                           "-e", "display dialog (item 1 of argv) buttons {\"OK\"} default button 1 with title \"Tellurion\" with icon note",
                            "-e", "end run", msg]
             if (try? p.run()) != nil { engineNotice = p }
             return

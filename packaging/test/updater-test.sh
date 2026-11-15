@@ -18,10 +18,10 @@ U="$WORK/updater"
 swiftc -O -o "$U" "$HERE_T/../updater.swift" 2>"$WORK/swiftc.log" || { cat "$WORK/swiftc.log"; echo "FAIL: updater.swift does not compile"; exit 1; }
 
 mkapp() { # mkapp <dir> <version> [bundle-id]
-  local a="$1/Accurona.app"
+  local a="$1/Tellurion.app"
   mkdir -p "$a/Contents/MacOS" "$a/Contents/Resources"
   printf '#!/bin/sh\nexit 0\n' > "$a/Contents/MacOS/launcher"; chmod +x "$a/Contents/MacOS/launcher"
-  /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string ${3:-com.accurona.app}" \
+  /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string ${3:-com.tellurion.app}" \
     -c "Add :CFBundleShortVersionString string $2" -c "Add :CFBundleExecutable string launcher" \
     -c "Add :CFBundlePackageType string APPL" "$a/Contents/Info.plist" >/dev/null
   echo "$2" > "$a/Contents/Resources/marker"
@@ -29,12 +29,12 @@ mkapp() { # mkapp <dir> <version> [bundle-id]
 }
 mkzip() { # mkzip <version> <zip> [bundle-id]
   rm -rf "$WORK/src"; mkdir -p "$WORK/src"; mkapp "$WORK/src" "$1" "${3:-}"
-  (cd "$WORK/src" && ditto -c -k --keepParent Accurona.app "$2")
+  (cd "$WORK/src" && ditto -c -k --keepParent Tellurion.app "$2")
 }
 fresh_install() { rm -rf "$WORK/inst"; mkdir -p "$WORK/inst"; mkapp "$WORK/inst" 0.13; }
-installed() { cat "$WORK/inst/Accurona.app/Contents/Resources/marker" 2>/dev/null; }
+installed() { cat "$WORK/inst/Tellurion.app/Contents/Resources/marker" 2>/dev/null; }
 check() { # check <feed-url> [key] -> exit status of the updater
-  "$U" check --feed "$1" --key-file "${2:-$WORK/pub}" --app "$WORK/inst/Accurona.app" \
+  "$U" check --feed "$1" --key-file "${2:-$WORK/pub}" --app "$WORK/inst/Tellurion.app" \
     --current 0.13 --seen-file "$WORK/seen" --yes --no-relaunch --wait-swap --timeout 2 >/dev/null 2>"$WORK/err"
 }
 
@@ -49,7 +49,7 @@ mkzip 0.14 "$WORK/v14.zip"
 
 fresh_install; check "file://$WORK/feed.json"; rc=$?
 [ "$rc" = "3" ] && [ "$(installed)" = "0.14" ] && ok "newer signed feed: app replaced (exit 3)" || bad "swap: exit $rc, installed $(installed), $(cat "$WORK/err")"
-ls "$WORK/inst" | grep -qv '^Accurona.app$' && bad "swap left files beside the app: $(ls "$WORK/inst")" || ok "nothing left beside the app"
+ls "$WORK/inst" | grep -qv '^Tellurion.app$' && bad "swap left files beside the app: $(ls "$WORK/inst")" || ok "nothing left beside the app"
 
 fresh_install; check "file://$WORK/feed.json" "$WORK/pub-other"; rc=$?
 [ "$rc" = "0" ] && [ "$(installed)" = "0.13" ] && grep -q "not signed" "$WORK/err" && ok "wrong key: refused, app kept" || bad "wrong key: exit $rc, installed $(installed)"
@@ -125,7 +125,7 @@ cp "$WORK/v14-orig.zip" "$WORK/v14.zip"
 
 # A correctly signed feed may still only name an https address under the
 # release download base. All of these are refused before any request is made.
-BASE="https://github.com/qant-au/RecoilEngine-AppleSilicon/releases/download"
+BASE="https://github.com/qant-au/tellurion/releases/download"
 for u in "https://example.com/v0.14/v14.zip" "http://${BASE#https://}/v0.14/v14.zip" \
          "$BASE/../../../../other/repo/releases/download/v14.zip" "$BASE/v0.14/%2e%2e/%2e%2e/%2e%2e/v14.zip" \
          "https://github.com.example.com/${BASE#https://github.com/}/v14.zip" "https://user@github.com/${BASE#https://github.com/}/v14.zip"; do
@@ -142,7 +142,7 @@ done
 fresh_install; check "file://$WORK/feed-base.json"; rc=$?
 [ "$rc" = "0" ] && ! grep -q "outside the release site" "$WORK/err" && ok "download address under the release base: accepted" || bad "address under the base: exit $rc, $(cat "$WORK/err")"
 "$U" sign --key "$WORK/priv" --archive "$WORK/v12.zip" --version 0.12 --url "https://downloads.example.com/a/v12.zip" --out "$WORK/feed-base2.json" >/dev/null
-"$U" check --feed "file://$WORK/feed-base2.json" --key-file "$WORK/pub" --app "$WORK/inst/Accurona.app" --current 0.13 \
+"$U" check --feed "file://$WORK/feed-base2.json" --key-file "$WORK/pub" --app "$WORK/inst/Tellurion.app" --current 0.13 \
   --download-base "https://downloads.example.com/a" --yes --no-relaunch --wait-swap --timeout 2 >/dev/null 2>"$WORK/err"; rc=$?
 [ "$rc" = "0" ] && ! grep -q "outside the release site" "$WORK/err" && ok "--download-base moves the accepted base" || bad "--download-base: exit $rc, $(cat "$WORK/err")"
 
@@ -155,14 +155,14 @@ TEAMED=0
 for donor in /Applications/*.app; do
   exe=$(/usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$donor/Contents/Info.plist" 2>/dev/null) || continue
   id=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$donor/Contents/Info.plist" 2>/dev/null) || continue
-  rm -rf "$WORK/inst"; mkdir -p "$WORK/inst/Accurona.app/Contents/MacOS" "$WORK/inst/Accurona.app/Contents/Resources"
-  cp "$donor/Contents/Info.plist" "$WORK/inst/Accurona.app/Contents/" 2>/dev/null \
-    && cp "$donor/Contents/MacOS/$exe" "$WORK/inst/Accurona.app/Contents/MacOS/" 2>/dev/null \
-    && cp -R "$donor/Contents/_CodeSignature" "$WORK/inst/Accurona.app/Contents/" 2>/dev/null || continue
-  codesign -dv --verbose=2 "$WORK/inst/Accurona.app" 2>&1 | grep -Eq '^TeamIdentifier=[A-Z0-9]{10}$' && { TEAMED=1; break; }
+  rm -rf "$WORK/inst"; mkdir -p "$WORK/inst/Tellurion.app/Contents/MacOS" "$WORK/inst/Tellurion.app/Contents/Resources"
+  cp "$donor/Contents/Info.plist" "$WORK/inst/Tellurion.app/Contents/" 2>/dev/null \
+    && cp "$donor/Contents/MacOS/$exe" "$WORK/inst/Tellurion.app/Contents/MacOS/" 2>/dev/null \
+    && cp -R "$donor/Contents/_CodeSignature" "$WORK/inst/Tellurion.app/Contents/" 2>/dev/null || continue
+  codesign -dv --verbose=2 "$WORK/inst/Tellurion.app" 2>&1 | grep -Eq '^TeamIdentifier=[A-Z0-9]{10}$' && { TEAMED=1; break; }
 done
 if [ "$TEAMED" = 1 ]; then
-  echo 0.13 > "$WORK/inst/Accurona.app/Contents/Resources/marker"
+  echo 0.13 > "$WORK/inst/Tellurion.app/Contents/Resources/marker"
   mkzip 0.14 "$WORK/team.zip" "$id"
   "$U" sign --key "$WORK/priv" --archive "$WORK/team.zip" --version 0.14 --url "file://$WORK/team.zip" --out "$WORK/feed-team.json" >/dev/null
   check "file://$WORK/feed-team.json"; rc=$?
@@ -173,8 +173,8 @@ else
 fi
 
 # an app this user cannot move is not offered an update it could not install
-fresh_install; chmod 555 "$WORK/inst/Accurona.app"; check "file://$WORK/feed.json"; rc=$?
-chmod 755 "$WORK/inst/Accurona.app"
+fresh_install; chmod 555 "$WORK/inst/Tellurion.app"; check "file://$WORK/feed.json"; rc=$?
+chmod 755 "$WORK/inst/Tellurion.app"
 [ "$rc" = "0" ] && [ "$(installed)" = "0.13" ] && grep -q "cannot be moved" "$WORK/err" \
   && ok "immovable app: update not offered, app kept" || bad "immovable app: exit $rc, installed $(installed), $(cat "$WORK/err")"
 

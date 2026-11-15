@@ -45,7 +45,7 @@ stays mechanical:
   or act for BAR are also disabled one by one on GitHub (`gh workflow
   disable`), so the files stay identical to upstream and merges stay clean.
   There is no macOS job upstream. Check the state with
-  `gh api repos/qant-au/RecoilEngine-AppleSilicon/actions/workflows --jq '.workflows[]|[.path,.state]|@tsv'`.
+  `gh api repos/qant-au/tellurion/actions/workflows --jq '.workflows[]|[.path,.state]|@tsv'`.
 - **Branch protection:** `main` cannot be force-pushed or deleted.
 
 ## Merging A New Upstream Release
@@ -227,5 +227,5 @@ Linux client and a Windows client and look at each:
 - **Report bugs noticed along the way**, even when they are not the task.
 
 Issues for this build go to
-[this repository's tracker](https://github.com/qant-au/RecoilEngine-AppleSilicon/issues),
+[this repository's tracker](https://github.com/qant-au/tellurion/issues),
 never to the Recoil or BAR projects.

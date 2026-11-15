@@ -1,5 +1,5 @@
 #!/bin/bash
-# Accurona.app entrypoint (CFBundleExecutable).
+# Tellurion.app entrypoint (CFBundleExecutable).
 # Responsibilities, in order:
 #   1. wire the bundled Mesa Zink -> KosmicKrisp -> Metal driver env
 #      (bundle-relative paths only; nothing machine-specific);
@@ -29,7 +29,7 @@ unset PRD_DISABLE_CERT_CHECK PRD_SSL_CERT_FILE PRD_SSL_CERT_DIR BASH_ENV ENV
 if [ -z "${BAR_WRITEDIR_OVERRIDE:-}" ]; then
   unset BAR_ASSUME_CONSENT BAR_SKIP_CONTENT_CHECK BAR_SKIP_ENGINE_NUDGE BAR_CONTENT_SCOPE \
         BAR_MESSAGE_CONFIG_URL BAR_DIST_CFG_URL BAR_RELEASES_URL \
-        ACCURONA_UPDATE_FEED ACCURONA_SKIP_UPDATE
+        TELLURION_UPDATE_FEED TELLURION_SKIP_UPDATE
   export PATH=/usr/bin:/bin:/usr/sbin:/sbin
 fi
 
@@ -46,7 +46,7 @@ fail_dialog() { # osascript shows its own dialog: no other app is addressed,
   # argument, never spliced into the script, so a quote or backslash in a
   # path or an error line cannot break it. "activate" brings it to the front.
   osascript -e 'on run argv' -e 'activate' \
-    -e 'display dialog (item 1 of argv) buttons {"OK"} default button 1 with title "Accurona" with icon caution' \
+    -e 'display dialog (item 1 of argv) buttons {"OK"} default button 1 with title "Tellurion" with icon caution' \
     -e 'end run' "$1" >/dev/null 2>&1 || true
 }
 
@@ -282,13 +282,13 @@ MESSAGE_SEEN="$WRITEDIR/.message-seen"
 # Remote message config (announcements / kill-switch). Source baked at build
 # time (release-build.sh --messages-config/--messages-local -> staged
 # .message-config-url); BAR_MESSAGE_CONFIG_URL overrides at runtime.
-MESSAGE_CONFIG_URL="${BAR_MESSAGE_CONFIG_URL:-$(cat "$RES/.message-config-url" 2>/dev/null || echo "https://raw.githubusercontent.com/qant-au/RecoilEngine-AppleSilicon/main/message-config/messages.json")}"
+MESSAGE_CONFIG_URL="${BAR_MESSAGE_CONFIG_URL:-$(cat "$RES/.message-config-url" 2>/dev/null || echo "https://raw.githubusercontent.com/qant-au/tellurion/main/message-config/messages.json")}"
 PORT_VERSION="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$CONTENTS/Info.plist" 2>/dev/null || echo 0)"
 
 # Engine nudge (see step 1b below). Engine versions are YYYY.MM.DD, so the
 # digits compare as integers.
 BAR_DIST_CFG_URL="${BAR_DIST_CFG_URL:-https://raw.githubusercontent.com/beyond-all-reason/BYAR-Chobby/master/dist_cfg/config.json}"
-BAR_RELEASES_URL="${BAR_RELEASES_URL:-https://github.com/qant-au/RecoilEngine-AppleSilicon/releases/latest}"
+BAR_RELEASES_URL="${BAR_RELEASES_URL:-https://github.com/qant-au/tellurion/releases/latest}"
 engine_nudge() {
   local ours prod cfg dir i id
   ours="$(/usr/libexec/PlistBuddy -c "Print :EngineVersion" "$CONTENTS/Info.plist" 2>/dev/null)" || return 0
@@ -340,9 +340,9 @@ if [ "${BAR_SKIP_CONTENT_CHECK:-0}" != "1" ]; then
     #    bundle id, version, code signature) and swaps the app once this
     #    launcher has exited, then opens the new one (exit 3 = quit now).
     #    Fail-open like the message config. A build without a public key has
-    #    updates off. ACCURONA_UPDATE_FEED overrides the baked feed URL.
-    if [ -x "$HERE/updater" ] && [ -s "$RES/update-public-key" ] && [ "${ACCURONA_SKIP_UPDATE:-0}" != "1" ]; then
-      UPDATE_FEED="${ACCURONA_UPDATE_FEED:-$(cat "$RES/.update-feed-url" 2>/dev/null)}"
+    #    updates off. TELLURION_UPDATE_FEED overrides the baked feed URL.
+    if [ -x "$HERE/updater" ] && [ -s "$RES/update-public-key" ] && [ "${TELLURION_SKIP_UPDATE:-0}" != "1" ]; then
+      UPDATE_FEED="${TELLURION_UPDATE_FEED:-$(cat "$RES/.update-feed-url" 2>/dev/null)}"
       if [ -n "$UPDATE_FEED" ]; then
         UPDATE_BASE="$(cat "$RES/.update-download-base" 2>/dev/null)"
         "$HERE/updater" check --feed "$UPDATE_FEED" --key-file "$RES/update-public-key" \
@@ -460,7 +460,7 @@ If you do try to sign in or open an online menu, it will fail to reach the serve
     [ -n "$HPID" ] && { exec 4>&-; }
     cleanup_fifo
     if [ -x "$HERE/error-dialog" ]; then
-      "$HERE/error-dialog" --title "BAR Launcher" --message "[filesystem] $msg" --logfile "$LOG"
+      "$HERE/error-dialog" --title "Tellurion" --message "[filesystem] $msg" --logfile "$LOG"
     else
       fail_dialog "$msg"$'\n\n'"Details: $LOG"
     fi
@@ -625,7 +625,7 @@ If you do try to sign in or open an online menu, it will fail to reach the serve
     MSG="${ERR_TEXT:-The first-run download failed (code ${RC}).}"
     ERRHELP="$HERE/error-dialog"
     if [ -x "$ERRHELP" ]; then
-      "$ERRHELP" --title "Accurona" --message "[${ERR_CODE:-unknown}] $MSG" --logfile "$LOG"
+      "$ERRHELP" --title "Tellurion" --message "[${ERR_CODE:-unknown}] $MSG" --logfile "$LOG"
     else
       fail_dialog "$MSG"$'\n\n'"Details: $LOG"
     fi

@@ -37,7 +37,7 @@ BAR="$(cd "$(dirname "$0")/.." && pwd)"   # always this checkout: an inherited $
 # with exactly the driver environment the launcher uses. The build-engine/
 # binary cannot load the bundled Vulkan loader (@rpath only resolves in the
 # bundle), which is why this runs the packaged engine.
-APP="${VISREG_APP:-$BAR/release-artifacts/Accurona.app}"
+APP="${VISREG_APP:-$BAR/release-artifacts/Tellurion.app}"
 C="$APP/Contents"; RES="$C/Resources"
 DEMO="$BAR/deps/replays-0902/glacial-gap-0902.sdfz"
 CONTENT="$HOME/Library/Application Support/Beyond-All-Reason-mac"

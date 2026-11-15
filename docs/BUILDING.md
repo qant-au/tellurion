@@ -20,8 +20,8 @@ are in [VERSIONS.md](VERSIONS.md).
   engine version from the nearest upstream release tag and stops without one:
 
   ```sh
-  git clone --recurse-submodules https://github.com/qant-au/RecoilEngine-AppleSilicon.git
-  cd RecoilEngine-AppleSilicon
+  git clone --recurse-submodules https://github.com/qant-au/tellurion.git
+  cd tellurion
   git remote add upstream https://github.com/beyond-all-reason/RecoilEngine.git
   git fetch upstream --tags
   ```
@@ -46,7 +46,7 @@ relinks the engine without the libm step described in
 | Command | What It Builds | Tests It Runs |
 |---|---|---|
 | `make engine` | The engine binaries in `build-engine/` (`scripts/build-engine.sh`). Builds the Mesa driver first if it is not current. | The libm parity gate and the artifact checks. Prints `ENGINE_BUILD_OK`. |
-| `make app` | `release-artifacts/Accurona.app`, a `.zip` and a `.dmg`, ad-hoc signed. | As `make engine`, then the bundle audits: library closure, search paths, deployment target, builder-path scan, loose-file manifest, license audit. |
+| `make app` | `release-artifacts/Tellurion.app`, a `.zip` and a `.dmg`, ad-hoc signed. | As `make engine`, then the bundle audits: library closure, search paths, deployment target, builder-path scan, loose-file manifest, license audit. |
 | `make engine-dist` | The engine alone, `release-artifacts/Recoil-macos-<engine>-port<version>.zip`: `spring`, `spring-headless`, `spring-dedicated`, `libunitsync`, `pr-downloader`, the AIs, base content, the driver. | As `make app`. |
 | `make certify` | As `make app`. | As `make app`, plus the streflop sync test, a replay check, visual regression on the bundle just built, and the driver smoke test in a real window. Needs a GPU, game content and a demo (`RELEASE_SMOKE_DEMO=<file.sdfz>`, or a file under `refdemos/<engine>/`). The summary ends with `certified: yes`. |
 | `make release` | As `make certify`, signed with a Developer ID and notarised. Needs `IDENTITY` and notary credentials: see [RELEASING.md](RELEASING.md). | Every test above. None can be skipped for a Developer ID build. |
@@ -275,8 +275,8 @@ are ignored, and the launcher finds its tools on the system path only.
 | `BAR_SKIP_CONTENT_CHECK=1` | Skip the whole first-run block: update check, messages, consent and content download. |
 | `BAR_ASSUME_CONSENT=1` | Skip the update check, the message check and the consent prompt, and download content as if consent had been given. For unattended tests only. |
 | `BAR_CONTENT_SCOPE=lobby` | Download only the lobby package, not the game and maps. |
-| `ACCURONA_SKIP_UPDATE=1` | Skip the in-app update check. |
-| `ACCURONA_UPDATE_FEED=<url>` | Read this update feed instead of the one the build recorded. |
+| `TELLURION_SKIP_UPDATE=1` | Skip the in-app update check. |
+| `TELLURION_UPDATE_FEED=<url>` | Read this update feed instead of the one the build recorded. |
 | `BAR_MESSAGE_CONFIG_URL=<url>` | Read this message file instead of the one the build recorded. |
 | `BAR_SKIP_ENGINE_NUDGE=1` | Skip the check of BAR's production engine version. |
 | `BAR_DIST_CFG_URL=<url>` | Where that check reads BAR's launcher configuration from. |
@@ -300,4 +300,4 @@ are ignored, and the launcher finds its tools on the system path only.
 | `RELEASE_SMOKE_DEMO=<file>` | `release-build.sh` | The demo for the certify replay check. |
 | `RELEASE_CERTIFY=1`, `RELEASE_SYNC_TEST=1`, `RELEASE_VISREG=1` | `release-build.sh` | Same as `--certify`, `--with-synctest`, `--with-visreg`. |
 | `RELEASE_OUT=<dir>` | `release-build.sh` | Where artifacts go (default `release-artifacts/`). |
-| `BAR_ONLINE`, `BAR_CONTENT_TAGS`, `BAR_MESSAGES_CONFIG`, `ACCURONA_UPDATE_FEED`, `ACCURONA_UPDATE_DOWNLOAD_BASE`, `ACCURONA_UPDATE_SIGNING_KEY`, `NOTARY_KEY`, `NOTARY_KEY_ID`, `NOTARY_ISSUER` | `release-build.sh` | Release settings: see [RELEASING.md](RELEASING.md). |
+| `BAR_ONLINE`, `BAR_CONTENT_TAGS`, `BAR_MESSAGES_CONFIG`, `TELLURION_UPDATE_FEED`, `TELLURION_UPDATE_DOWNLOAD_BASE`, `TELLURION_UPDATE_SIGNING_KEY`, `NOTARY_KEY`, `NOTARY_KEY_ID`, `NOTARY_ISSUER` | `release-build.sh` | Release settings: see [RELEASING.md](RELEASING.md). |

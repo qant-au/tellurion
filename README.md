@@ -1,4 +1,4 @@
-# Accurona: The Recoil Engine On Apple Silicon
+# Tellurion: The Recoil Engine On Apple Silicon
 
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-black?logo=apple" alt="macOS on Apple Silicon">
@@ -8,13 +8,13 @@
 
 **An unofficial native Apple Silicon build of the
 [Recoil](https://github.com/beyond-all-reason/RecoilEngine) RTS engine**, with
-an optional helper app, Accurona, that sets it up to play
+an optional helper app, Tellurion, that sets it up to play
 [Beyond All Reason](https://www.beyondallreason.info/) (BAR). No Rosetta and no
 virtual machine.
 
 > [!IMPORTANT]
 > If you run into a problem, report it
-> [here](https://github.com/qant-au/RecoilEngine-AppleSilicon/issues), **not**
+> [here](https://github.com/qant-au/tellurion/issues), **not**
 > in the official Beyond All Reason or Recoil channels. They cannot help with
 > problems caused by this port.
 
@@ -72,7 +72,7 @@ for Windows and Linux. This repository builds it for macOS:
 - **Simulation** has to match the x86 builds bit for bit, because Recoil
   games are lockstep-deterministic. The rules this build follows, and what
   checks each one, are in [docs/DETERMINISM.md](docs/DETERMINISM.md).
-- **Two bundles** come out of the build. `make app` makes Accurona, the app
+- **Two bundles** come out of the build. `make app` makes Tellurion, the app
   that (after consent) downloads BAR from its official content network and
   starts its lobby. `make engine-dist` makes the engine alone, in the same
   layout as the official Linux engine archive, with no game content and no
@@ -99,11 +99,11 @@ Upstream's own engine README is
 ## Building
 
 ```sh
-git clone --recurse-submodules https://github.com/qant-au/RecoilEngine-AppleSilicon.git
-cd RecoilEngine-AppleSilicon
+git clone --recurse-submodules https://github.com/qant-au/tellurion.git
+cd tellurion
 git remote add upstream https://github.com/beyond-all-reason/RecoilEngine.git
 git fetch upstream --tags     # the build reads the engine version from the release tag
-make app                      # Accurona.app, .zip and .dmg in release-artifacts/
+make app                      # Tellurion.app, .zip and .dmg in release-artifacts/
 ```
 
 Prerequisites, every build target, every test with its expected result, and
@@ -121,7 +121,7 @@ Developer ID signed build refuses it.
 
 ## What The App Contacts
 
-Before the consent prompt, each launch of Accurona makes three read-only
+Before the consent prompt, each launch of Tellurion makes three read-only
 requests to GitHub and nothing else:
 
 1. the update feed of this repository (is there a newer app),
@@ -275,6 +275,6 @@ launch.
 ## Reporting Issues
 
 This is an unofficial port: please report problems on
-[this repository's issue tracker](https://github.com/qant-au/RecoilEngine-AppleSilicon/issues),
+[this repository's issue tracker](https://github.com/qant-au/tellurion/issues),
 not to the Recoil or BAR projects. A bug here is most likely this port's
 fault, and their trackers should not carry it.
