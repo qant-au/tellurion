@@ -207,7 +207,7 @@ This port stands on a lot of prior work, gratefully:
     errors instead of crashes on unusable LuaVBOs (#3695), `--window` turning
     fullscreen off again (#3163), and from his macOS integration branch (#3271)
     the GL 3.0 extension-check skip and the Mesa threaded-context patch for
-    flipped frames (Mesa issue 16734).
+    flipped frames (Mesa issue 16734; carried until Mesa 26.3.0 shipped the fix).
   - **[Leon Seemann](https://github.com/leonseemann)**: macOS keyboard fixes
     (#3540: Cmd as Ctrl, dead keys, AutoFill off, F11/Pause), streamed-buffer
     orphaning (#3542), persistent model uniforms (#3543), LOS/radar PBO uploads

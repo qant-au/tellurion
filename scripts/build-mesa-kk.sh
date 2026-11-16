@@ -31,7 +31,7 @@ case "$BAR" in *" "*) echo "FATAL: the checkout path contains a space, which the
 # silently follows whichever Mac built it. clang, swiftc, meson and cmake all read it.
 export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-26.0}"
 DEPS="$BAR/deps"
-MESA_COMMIT="90a959ebba9dbb36f2ea5176091c15d6ebdd0af0"   # mesa-26.3.0-rc3 (was 8f272b1fe18e, 26.2.0-devel, 2026-06-13)
+MESA_COMMIT="0a6fa60abb737d26ac8a316a4aad7c9ddf64f9e4"   # mesa-26.3.0 (was 90a959ebba9d 26.3.0-rc3, 2026-11-08; 8f272b1fe18e 26.2.0-devel before that)
 SPIRV_XLAT_TAG="v19.1.7"
 SPIRV_XLAT_COMMIT="3fac86cf760a4a2510f3c1e76001ea799812a2f6"   # what that tag names
 MESA_PREFIX="${MESA_PREFIX:-$DEPS/mesa-native}"           # driver install prefix

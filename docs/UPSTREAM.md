@@ -169,7 +169,7 @@ contribution.
 
 ## Mesa Patches
 
-The ten files in `patches/mesa/`, against the pin in
+The nine files in `patches/mesa/`, against the pin in
 [VERSIONS.md](VERSIONS.md). None has been submitted to Mesa.
 
 | Patch | Subject | Offer To Mesa? |
@@ -183,7 +183,6 @@ The ten files in `patches/mesa/`, against the pin in
 | 0007 | kosmickrisp: save and restore push-descriptor data and layout | yes |
 | 0008 | zink: keep `vertex_buffers_dirty` on an empty unbind | yes |
 | 0009 | kosmickrisp: reset the geometry heap once per frame | yes |
-| 0010 | gallium/tc: do not carry an ended renderpass into the next batch | no: fixed in Mesa main after the pin; drop it when the pin moves past the fix |
 
 Before any is sent: re-check it against Mesa main, rewrite its message by
 hand within 75 columns with no reference to this project or its tracker, and
