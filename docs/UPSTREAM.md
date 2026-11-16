@@ -7,7 +7,7 @@ through the next merge.
 
 Pull request and issue numbers are on
 [beyond-all-reason/RecoilEngine](https://github.com/beyond-all-reason/RecoilEngine)
-unless a row says otherwise. States were read on 2026-11-10; re-read them
+unless a row says otherwise. States were read on 2026-11-16; re-read them
 before acting on a row.
 
 ## Rules That Apply
@@ -115,7 +115,6 @@ contribution.
 | #3537 | tomjn | Do not pump window events from the loading thread | open |
 | #3551 to #3556 | tomjn | LuaVBO size limits and padding, StreamBuffer slot offsets and fence lifetime, the framebuffer restore after `gl.RenderToTexture`, archive fallback fonts | open |
 | #3689 | tomjn | Check the FPCR on NEON in `good_fpu_control_registers` | open |
-| #3691 | tomjn | nv_dds: `flip_dxt5_alpha` wrote past the block | open |
 | #3694 | tomjn | QTPFS: do not read system components that were never created | open |
 | #3695 | tomjn | LuaVBO: Lua errors instead of crashes on unusable buffers | open |
 | #3700 | tomjn | Headless: do not decode S3O textures that are never drawn | open |
@@ -131,7 +130,8 @@ contribution.
 | #3289 | `views::enumerate` fallback for libc++ | in the current tag |
 | #3290 | `testClampRad` undefined conversion | in the current tag |
 | #3340 | Audio output closed when a device is added | merged |
-| #3690 | macOS: the spinning-disk warning on every archive | merged on master; ours drops at the next tag that has it |
+| #3690 | macOS: the spinning-disk warning on every archive | merged; in 2026.11.01 and 2026.11.02 (pre-releases), ours drops when we rebase onto one |
+| #3691 | nv_dds: `flip_dxt5_alpha` wrote past the block (tomjn) | merged 2026-11-10; in 2026.11.01 and 2026.11.02 (pre-releases) |
 
 ## Declined Upstream, Removed Here
 
