@@ -13,6 +13,11 @@ echo "toolchain:"
 xcode-select -p >/dev/null 2>&1 && ok "Xcode tools at $(xcode-select -p)" || bad "no Xcode command line tools (xcode-select --install)"
 [ -x /opt/homebrew/bin/g++-15 ] && ok "gcc@15 (libm dbl-64 swap)" || bad "gcc@15 missing (brew install gcc@15)"
 command -v ninja >/dev/null && ok "ninja" || bad "ninja missing (brew install ninja)"
+# the Mesa build's venv (Mako) needs 3.10+; build-mesa-kk.sh prefers Homebrew's
+MPY=python3; [ -x /opt/homebrew/bin/python3 ] && MPY=/opt/homebrew/bin/python3
+"$MPY" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null \
+  && ok "Python 3.10+ for the Mesa build ($MPY)" \
+  || bad "the Mesa build needs Python 3.10+, found $("$MPY" --version 2>&1) at $MPY (brew install python)"
 { command -v timeout || command -v gtimeout; } >/dev/null && ok "timeout" || bad "no timeout/gtimeout (brew install coreutils)"
 [ -x /opt/homebrew/bin/bash ] && ok "bash 4+ for docker-build-v2" || warn "no Homebrew bash: scripts/check-nonmac.sh cannot run (brew install bash)"
 command -v docker >/dev/null && docker info >/dev/null 2>&1 && ok "docker running" || warn "docker not running: scripts/check-nonmac.sh and Linux replays unavailable"

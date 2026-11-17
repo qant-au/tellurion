@@ -145,10 +145,26 @@ for p in $(patch_list); do
   git apply --whitespace=nowarn "$p" || { echo "FATAL: patch $(basename "$p") did not apply to $MESA_COMMIT"; exit 1; }
 done
 
-python3 -m venv "$DEPS/mesa-venv"
+# The pinned Mako needs Python 3.10+. Apple's /usr/bin/python3 is 3.9 and is
+# often first on PATH, so Homebrew's is preferred (issue #8).
+PY=python3
+[ -x /opt/homebrew/bin/python3 ] && PY=/opt/homebrew/bin/python3
+"$PY" -c 'import sys; sys.exit(sys.version_info < (3, 10))' || {
+  echo "FATAL: $PY is $("$PY" --version 2>&1); the Mesa build needs Python 3.10 or later (brew install python)"
+  exit 1
+}
+# a venv left by a failed run, or made with an older Python, is started again
+if [ -x "$DEPS/mesa-venv/bin/python" ] && ! "$DEPS/mesa-venv/bin/python" -c 'import sys; sys.exit(sys.version_info < (3, 10))'; then
+  rm -rf "$DEPS/mesa-venv"
+fi
+"$PY" -m venv "$DEPS/mesa-venv"
 # pinned versions with their published hashes: Mako generates C that is compiled
 # into the driver
-"$DEPS/mesa-venv/bin/pip" install --quiet --require-hashes -r "$BAR/scripts/mesa-venv-requirements.txt"
+"$DEPS/mesa-venv/bin/pip" install --quiet --require-hashes -r "$BAR/scripts/mesa-venv-requirements.txt" || {
+  rm -rf "$DEPS/mesa-venv"
+  echo "FATAL: installing the Mesa build's Python packages failed; deps/mesa-venv was removed so the next run starts clean"
+  exit 1
+}
 
 # Reproducibility: strip the absolute build-root prefix ($BAR, which
 # contains deps/mesa-src) out of every embedded __FILE__ and DWARF debug path so
