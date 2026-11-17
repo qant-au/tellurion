@@ -109,10 +109,6 @@
 #include <SDL_clipboard.h>
 #include <SDL_mouse.h>
 
-#if defined(__APPLE__) && !defined(HEADLESS)
-#include "System/Platform/Mac/MacPresentBackend.h"
-#endif
-
 // MinGW defines this for a WINAPI function
 #undef SendMessage
 #undef CreateDirectory
@@ -3820,14 +3816,6 @@ int LuaUnsyncedCtrl::SendLuaUIMsg(lua_State* L)
 
 	if (mode[0] != 0 && mode[0] != 'a' && mode[0] != 's')
 		luaL_error(L, "Unknown SendLuaUIMsg() mode");
-
-#if defined(__APPLE__) && !defined(HEADLESS)
-	// BAR's lobby announces itself over a running game with this message
-	// (BYAR-Chobby api_ingame_interface.lua); MacRenderScale is lifted while
-	// it shows, so the lobby keeps its full-scale layout
-	if (msg == "LobbyOverlayActive1" || msg == "LobbyOverlayActive0")
-		MacPresent::SetLobbyOverlay(msg.back() == '1');
-#endif
 
 	try {
 		clientNet->Send(CBaseNetProtocol::Get().SendLuaMsg(gu->myPlayerNum, LUA_HANDLE_ORDER_UI, mode[0], data));

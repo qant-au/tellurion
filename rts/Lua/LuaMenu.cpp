@@ -28,6 +28,10 @@
 
 #include "System/Misc/TracyDefs.h"
 
+#if defined(__APPLE__) && !defined(HEADLESS)
+#include "System/Platform/Mac/MacPresentBackend.h"
+#endif
+
 CLuaMenu* luaMenu = nullptr;
 
 /***
@@ -400,8 +404,18 @@ bool CLuaMenu::AllowDraw()
 int CLuaMenu::SendLuaUIMsg(lua_State* L)
 {
 	RECOIL_DETAILED_TRACY_ZONE;
+	const std::string msg = luaL_checksstring(L, 1);
+
+#if defined(__APPLE__) && !defined(HEADLESS)
+	// BAR's lobby announces itself over a running game with this message
+	// (BYAR-Chobby api_ingame_interface.lua); MacRenderScale is lifted while
+	// it shows, so the lobby keeps its full-scale layout
+	if (msg == "LobbyOverlayActive1" || msg == "LobbyOverlayActive0")
+		MacPresent::SetLobbyOverlay(msg.back() == '1');
+#endif
+
 	if (luaUI != nullptr)
-		luaUI->RecvLuaMsg(luaL_checksstring(L, 1), 0);
+		luaUI->RecvLuaMsg(msg, 0);
 
 	return 0;
 }
