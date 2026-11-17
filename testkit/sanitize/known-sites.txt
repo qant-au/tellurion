@@ -11,3 +11,14 @@
 # finds the same hash node the generic path finds. Seen with the key 1e10.
 rts/lib/lua/src/ltable.cpp:125	arrayindex: the result is only used when 0 < k <= 2^26
 rts/lib/lua/src/ltable.cpp:477	luaH_get: same node found by the integer and the generic path
+
+# Upstream Lua, unchanged by this repository: lua_tointeger, under every Lua
+# integer argument. Seen with inf from BAR's Spring.SetUnitPosErrorParams
+# (nextPosErrorUpdate = math.huge, 2026.09.03 fleet demos, 2026-11-17).
+# x86 stores INT_MIN, arm64 INT_MAX; either way CUnit::UpdatePosErrorParams
+# skips the update that draws from gsRNG, so the simulation is the same: three
+# 2026.09.03 fleet demos stay in sync. Forcing INT_MIN on arm64 DESYNCS them
+# (clang folds --n > 0 assuming no overflow and takes the update path), so do
+# not 'fix' it that way. Only a Lua read of the field
+# (Spring.GetUnitPosErrorParams) could see the difference.
+rts/lib/lua/src/lapi.cpp:330	lua_tointeger: inf as nextPosErrorUpdate skips the update on both
