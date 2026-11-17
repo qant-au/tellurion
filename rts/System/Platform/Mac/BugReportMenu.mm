@@ -49,7 +49,8 @@ static NSString* writeDirPath = nil;
 	NSFont* font = [NSFont systemFontOfSize:[NSFont smallSystemFontSize]];
 	NSMutableParagraphStyle* para = [[NSMutableParagraphStyle alloc] init];
 	[para setAlignment:NSTextAlignmentCenter];
-	[para setParagraphSpacing:6];
+	[para setParagraphSpacing:10];
+	[para setLineSpacing:2];
 	NSDictionary* plain = @{NSFontAttributeName: font, NSParagraphStyleAttributeName: para, NSForegroundColorAttributeName: [NSColor labelColor]};
 	NSMutableAttributedString* credits = [[NSMutableAttributedString alloc] init];
 	void (^add)(NSString*) = ^(NSString* t) { [credits appendAttributedString:[[NSAttributedString alloc] initWithString:t attributes:plain]]; };
@@ -59,14 +60,13 @@ static NSString* writeDirPath = nil;
 		[credits appendAttributedString:[[NSAttributedString alloc] initWithString:t attributes:a]];
 	};
 
-	add(@"Beyond All Reason for Mac on Apple silicon.\n");
-	add([NSString stringWithFormat:@"Recoil engine %@, drawn through Mesa (Zink and KosmicKrisp) on Metal.\n", engine]);
-	add(@"Not made or supported by the Beyond All Reason team. Please report problems with this app at ");
+	add(@"Beyond All Reason for Mac on Apple silicon, drawn through Mesa on Metal.\n");
+	add(@"Not made or supported by the Beyond All Reason team. Please report problems at ");
 	link(@"github.com/qant-au/tellurion/issues", @"https://github.com/qant-au/tellurion/issues");
 	add(@", not to BAR.\n");
 	add(@"Source: ");
 	link(@"github.com/qant-au/tellurion", @"https://github.com/qant-au/tellurion");
-	add(@"\nGNU GPL v2 or later. Third-party licences are in the app's Resources/LICENSES folder.");
+	add(@"\nGNU GPL v2 or later. Third-party licences: Resources/LICENSES in the app.");
 
 	[NSApp activateIgnoringOtherApps:YES];
 	[NSApp orderFrontStandardAboutPanelWithOptions:@{
