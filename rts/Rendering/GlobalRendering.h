@@ -409,6 +409,8 @@ public:
 	 */
 	bool fullScreen;
 	bool borderless;
+	// macOS: confine the cursor on the next click inside the window (not on its own)
+	bool macGrabOnClick = false;
 
 	bool underExternalDebug;
 	

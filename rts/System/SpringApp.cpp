@@ -1205,8 +1205,7 @@ bool SpringApp::MainEventHandler(const SDL_Event& event)
 					// unchanged, so a plain re-assert would NOT re-clip — toggle it
 					// off then on to force SDL to re-confine to the current rect.
 					// Windowed resizes are confined only with MacGrabWindowed.
-					if (globalRendering->borderless || globalRendering->fullScreen ||
-					    configHandler->GetBool("MacGrabWindowed")) {
+					if (globalRendering->GetWindowInputGrabbing()) {
 						globalRendering->SetWindowInputGrabbing(false);
 						globalRendering->SetWindowInputGrabbing(true);
 						LOG("[SpringApp::%s][macgrab-reclip] re-confined cursor to new size wsx=%d wsy=%d",
@@ -1262,16 +1261,12 @@ bool SpringApp::MainEventHandler(const SDL_Event& event)
 					// update keydown table
 					KeyInput::Update(keyBindings.GetFakeMetaKey());
 #if defined(__APPLE__) && !defined(HEADLESS)
-					// Re-confine the cursor when returning to a borderless-fullscreen
-					// window: FOCUS_LOST released the grab on cmd-tab, and without
-					// re-asserting it here edge-scroll toward an adjacent display
-					// would break after the first app switch. Windowed mode is
-					// confined too when MacGrabWindowed is set.
-					if (globalRendering->borderless || globalRendering->fullScreen ||
-					    configHandler->GetBool("MacGrabWindowed"))
-						globalRendering->SetWindowInputGrabbing(true);
+					// The cursor is NOT confined again here: FOCUS_LOST released it,
+					// and it stays free until the next click inside the window
+					// (SDL_MOUSEBUTTONDOWN below), so the menu bar and Dock stay
+					// reachable after an app switch.
 
-					// Also re-assert cursor visibility; see the ENTER case below.
+					// Re-assert cursor visibility; see the ENTER case below.
 					SDL_SetCursor(nullptr);
 #endif
 				} break;
@@ -1388,6 +1383,17 @@ bool SpringApp::MainEventHandler(const SDL_Event& event)
 		case SDL_QUIT: {
 			RequestQuit();
 		} break;
+#if defined(__APPLE__) && !defined(HEADLESS)
+		case SDL_MOUSEBUTTONDOWN: {
+			// borderless/fullscreen (or MacGrabWindowed): confine the cursor on a
+			// click inside the window, so edge-scroll toward a neighbouring
+			// display works; never before one (see GR::SetWindowAttributes)
+			if (globalRendering->macGrabOnClick && !globalRendering->GetWindowInputGrabbing()) {
+				globalRendering->SetWindowInputGrabbing(true);
+				LOG("[SpringApp::%s][macgrab] cursor confined on click", __func__);
+			}
+		} break;
+#endif
 		case SDL_TEXTEDITING: {
 			if (activeController != nullptr)
 				activeController->TextEditing(event.edit.text, event.edit.start, event.edit.length);
