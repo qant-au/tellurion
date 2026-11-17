@@ -60,6 +60,15 @@ func centerOnActiveScreen(_ w: NSWindow) {
     w.setFrameOrigin(NSPoint(x: max(vis.minX, x), y: max(vis.minY, y)))
 }
 
+// NSAlert's message text is selectable, so the pointer turns into a text
+// cursor over it. Nothing in these dialogs is meant to be copied.
+func makeTextUnselectable(_ view: NSView) {
+    for sub in view.subviews {
+        if let field = sub as? NSTextField { field.isSelectable = false }
+        makeTextUnselectable(sub)
+    }
+}
+
 func present(_ alert: NSAlert) -> NSApplication.ModalResponse {
     if let icon = barIcon() { alert.icon = icon }
     // SIZE BEFORE POSITION. An NSAlert window is only 260pt wide until it lays
@@ -69,6 +78,7 @@ func present(_ alert: NSAlert) -> NSApplication.ModalResponse {
     // size final now, so the centring below is the one the user sees.
     alert.layout()
     let w = alert.window
+    if let content = w.contentView { makeTextUnselectable(content) }
     w.level = .floating
     w.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
     // position BEFORE ordering front: we show the window ahead of runModal (to
