@@ -926,6 +926,14 @@ func handle(_ name: String, _ cmd: [String: Any], from client: Client) {
 let params = NWParameters.tcp
 params.requiredLocalEndpoint = NWEndpoint.hostPort(host: "127.0.0.1", port: .any)
 params.acceptLocalOnly = true
+// --bug-report 1: save the bug-report zip and exit. The engine's application
+// menu runs this (Save Bug Report...): BAR's lobby sends Upload Infolog to BAR's
+// own servers and never asks the launcher, so the menu is the way to the logs.
+if opts["bug-report"] == "1" {
+    saveBugReport { _, payload in log("bug report (menu): \(payload["msg"] ?? "")") }
+    exit(0)
+}
+
 guard let listener = try? NWListener(using: params) else { log("cannot create listener"); exit(1) }
 
 listener.newConnectionHandler = { conn in

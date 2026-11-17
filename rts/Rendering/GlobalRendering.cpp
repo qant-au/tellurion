@@ -43,6 +43,8 @@
 #include "System/Platform/WindowManagerHelper.h"
 #ifdef __APPLE__
 #include "System/Platform/Mac/Keyboard.h"
+#include "System/Platform/Mac/BugReportMenu.h"
+#include "System/FileSystem/DataDirLocater.h"
 #endif
 #include "System/Platform/errorhandler.h"
 #include "System/ScopedResource.h"
@@ -640,6 +642,9 @@ bool CGlobalRendering::CreateWindowAndContext(const char* title)
 
 #ifdef __APPLE__
 	MacKeyboard::Init();
+#ifndef HEADLESS
+	MacBugReport::InstallMenuItem(dataDirLocater.GetWriteDirPath());
+#endif
 #endif
 
 	if (configHandler->GetInt("MinimizeOnFocusLoss") == 0)
