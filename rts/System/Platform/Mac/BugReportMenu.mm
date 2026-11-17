@@ -7,12 +7,14 @@
 
 #import <AppKit/AppKit.h>
 #include <mach-o/dyld.h>
+#include <objc/runtime.h>
 
 #include <algorithm>
 #include <climits>
 #include <cstdint>
 
 static NSString* bridgePath = nil;
+static NSMenu* dockMenu = nil;
 static NSString* writeDirPath = nil;
 
 @interface TellurionBugReportTarget : NSObject
@@ -34,6 +36,11 @@ static NSString* writeDirPath = nil;
 		NSLog(@"[MacBugReport] could not start sl-bridge: %@", err);
 }
 @end
+
+// -applicationDockMenu: for SDL's application delegate: the same item on the
+// Dock icon's menu, which stays reachable while the game is in full screen
+// (the menu bar is hidden there); Cmd+Tab away, then right-click the icon
+static NSMenu* DockMenu(id, SEL, NSApplication*) { return dockMenu; }
 
 namespace MacBugReport {
 
@@ -64,6 +71,16 @@ void InstallMenuItem(const std::string& writeDir)
 		const NSInteger at = std::min<NSInteger>(1, [appMenu numberOfItems]);
 		[appMenu insertItem:[NSMenuItem separatorItem] atIndex:at];
 		[appMenu insertItem:item atIndex:at + 1];
+
+		id delegate = [NSApp delegate];
+		const SEL sel = @selector(applicationDockMenu:);
+		if (delegate != nil && ![delegate respondsToSelector:sel]) {
+			dockMenu = [[NSMenu alloc] init];
+			NSMenuItem* dockItem = [[NSMenuItem alloc] initWithTitle:@"Save Bug Report…" action:@selector(saveBugReport:) keyEquivalent:@""];
+			[dockItem setTarget:target];
+			[dockMenu addItem:dockItem];
+			class_addMethod([delegate class], sel, (IMP)DockMenu, "@@:@");
+		}
 	}
 }
 
