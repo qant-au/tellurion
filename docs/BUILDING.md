@@ -196,7 +196,7 @@ Keys the layer adds. Those marked macOS exist on macOS only.
 |---|---|---|
 | `MacCommandAsCtrl` (macOS) | 1 | Command acts as Control, so Cmd+key works like Ctrl+key elsewhere. Also takes the key equivalents (Cmd+Q, Cmd+H, Cmd+M) out of the application menu. |
 | `MacGrabWindowed` (macOS) | 0 | Keep the cursor inside the game window in windowed mode too. Borderless and fullscreen always confine it. |
-| `MacRenderScale` (macOS) | 1.0 | Fraction of the window's pixel resolution the game renders at, 0.5 to 1.0. Below 1.0 the frame is upscaled at present time. |
+| `MacRenderScale` (macOS) | 1.0 | Fraction of the window's pixel resolution the game renders at, 0.5 to 1.0. Below 1.0 the frame is upscaled at present time. Applies once a game has loaded; the lobby and loading screen stay at full scale. |
 | `MacUpscaler` (macOS) | 1 | How a frame rendered below window resolution is upscaled: 0 plain stretch, 1 the MetalFX spatial upscaler. |
 | `MacCrispInterface` (macOS) | 0 | With `MacRenderScale` below 1: 1 draws the interface and text at full resolution and only the world at `MacRenderScale` (plain smooth scaling). Needs a restart. See [PERFORMANCE.md](PERFORMANCE.md#render-scale-and-upscaler). |
 | `MacPresentDirect` (macOS) | 1 | The present shader reads the readback ring directly from unified memory; 0 uses the IOSurface staging path. |

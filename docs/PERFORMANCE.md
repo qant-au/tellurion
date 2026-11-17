@@ -154,7 +154,13 @@ scale ...`, with the reason when a cap applies.
 `MacRenderScale` (0.5 to 1.0, default 1.0) is the fraction of the resolution
 above that the game renders at. Below 1.0 the smaller frame is scaled up to the
 window when it is presented. Every pixel not rendered is also a pixel not read
-back. The value is applied at startup and when the window is resized.
+back. It applies only once a game has loaded: the lobby and the loading
+screen render at full scale, because the lobby lays out for the engine's size
+and would look larger below 1.0. The switch at game load and at the return to
+the lobby goes through the normal window-resize path
+(`MacPresent::SetRenderScaleActive`, called from `SpringApp::Update`). The
+value is also applied when the window is resized. Mac-only settings like this
+one are set by the Tellurion launcher, not BAR's settings menu.
 
 `MacUpscaler` chooses how that frame is scaled up: 1 (default) uses the MetalFX
 spatial upscaler, 0 a plain stretch. If MetalFX is not available the engine

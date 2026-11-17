@@ -117,6 +117,23 @@ std::atomic<int> presentDirect = {1};
 std::atomic<int>  upscalerCfg  = {1};
 std::atomic<bool> renderScaled = {false};
 
+// MacRenderScale applies only once a game has loaded (SetRenderScaleActive):
+// the lobby and the loading screen render at full scale, because the lobby
+// lays out for the engine's size and looks larger below 1.0.
+std::atomic<bool> renderScaleActive = {false};
+
+double ConfiguredRenderScale()
+{
+	if (configHandler == nullptr)
+		return 1.0;
+	return std::clamp(double(configHandler->GetFloat("MacRenderScale")), 0.5, 1.0);
+}
+
+double ActiveRenderScale()
+{
+	return renderScaleActive.load(std::memory_order_relaxed) ? ConfiguredRenderScale() : 1.0;
+}
+
 void ApplyUpscaler()
 {
 	MacMetalPresent_SetUpscaler(renderScaled.load(std::memory_order_relaxed) ? upscalerCfg.load(std::memory_order_relaxed) : 0);
@@ -437,9 +454,11 @@ bool CreateContext(SDL_Window* window)
 
 	// MacCrispInterface: the engine keeps the MacRenderScale size, the pbuffer
 	// (where the interface is drawn) the window's full size. A benchmark pin
-	// fixes one size for everything, so it turns the mode off.
-	const double rs = std::clamp(double(configHandler->GetFloat("MacRenderScale")), 0.5, 1.0);
-	const bool crisp = configHandler->GetBool("MacCrispInterface") && rs < 1.0 && !perfSize && !noRetina;
+	// fixes one size for everything, so it turns the mode off. The mode is
+	// chosen from the configured scale (its GL hooks are installed with the
+	// context); until a game loads the active scale is 1 and it is inert.
+	const double rs = ActiveRenderScale();
+	const bool crisp = configHandler->GetBool("MacCrispInterface") && ConfiguredRenderScale() < 1.0 && !perfSize && !noRetina;
 	MacCrisp::Configure(crisp);
 	renderScaled.store(rs < 1.0 && !crisp, std::memory_order_relaxed);
 	ApplyUpscaler();
@@ -681,7 +700,7 @@ double EffectiveBackingScale(SDL_Window* window)
 	if (configHandler == nullptr)
 		return hw;
 
-	const double rs = std::clamp(double(configHandler->GetFloat("MacRenderScale")), 0.5, 1.0);
+	const double rs = ActiveRenderScale();
 	// with MacCrispInterface the pbuffer matches the window: nothing to upscale
 	renderScaled.store(rs < 1.0 && !MacCrisp::Enabled(), std::memory_order_relaxed);
 	ApplyUpscaler();
@@ -783,7 +802,7 @@ void ResizeIfNeeded(SDL_Window* window)
 	const int    enW = std::max(1, int(std::lround(double(winW) * bsf)));
 	const int    enH = std::max(1, int(std::lround(double(winH) * bsf)));
 	// MacCrispInterface: the pbuffer stays at the window's full size
-	const double rs  = std::clamp(double(configHandler->GetFloat("MacRenderScale")), 0.5, 1.0);
+	const double rs  = ActiveRenderScale();
 	const int    pxW = MacCrisp::Enabled() ? std::max(enW, int(std::lround(double(winW) * bsf / rs))) : enW;
 	const int    pxH = MacCrisp::Enabled() ? std::max(enH, int(std::lround(double(winH) * bsf / rs))) : enH;
 
@@ -818,6 +837,16 @@ void ResizeIfNeeded(SDL_Window* window)
 	engH = enH;
 	MacCrisp::SetSizes(engW, engH, pbufW, pbufH);
 	LOG("[EGL] resize: pbuffer -> %dx%d px (window %dx%d * %.2f)", pxW, pxH, winW, winH, bsf);
+}
+
+bool SetRenderScaleActive(bool active)
+{
+	if (renderScaleActive.exchange(active, std::memory_order_relaxed) == active)
+		return false;
+	if (ConfiguredRenderScale() >= 1.0)
+		return false; // nothing to change: the render size is the same either way
+	LOG("[EGL] MacRenderScale %s (%s)", active ? "applied" : "lifted", active ? "game loaded" : "no game: lobby at full scale");
+	return true;
 }
 
 } // namespace MacPresent

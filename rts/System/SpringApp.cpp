@@ -106,6 +106,10 @@
 #include "Game/SyncedGameCommands.h"
 #include "lib/luasocket/src/restrictions.h"
 
+#if defined(__APPLE__) && !defined(HEADLESS)
+#include "System/Platform/Mac/MacPresentBackend.h"
+#endif
+
 
 
 CONFIG(unsigned, SetCoreAffinity).defaultValue(0).safemodeValue(1).description("Defines a bitmask indicating which CPU cores the main-thread should use.");
@@ -907,6 +911,19 @@ bool SpringApp::Update()
 	configHandler->Update();
 	globalRendering->UpdateWindow();
 	globalRendering->UpdateTimer();
+
+#if defined(__APPLE__) && !defined(HEADLESS)
+	// MacRenderScale only while a loaded game runs, so the lobby keeps its
+	// full-scale layout; a change goes through the normal window-resize path
+	if (MacPresent::SetRenderScaleActive(game != nullptr && game->IsDoneLoading())) {
+		SDL_Event ev = {};
+		ev.type = SDL_WINDOWEVENT;
+		ev.window.event = SDL_WINDOWEVENT_SIZE_CHANGED;
+		ev.window.windowID = SDL_GetWindowID(globalRendering->GetWindow());
+		SDL_GetWindowSize(globalRendering->GetWindow(), &ev.window.data1, &ev.window.data2);
+		SDL_PushEvent(&ev);
+	}
+#endif
 
 	#if 0
 	if (activeController == nullptr)

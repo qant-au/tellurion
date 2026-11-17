@@ -38,6 +38,10 @@ namespace MacPresent {
 	// recreate the pbuffer at the window's current pixel size so resizes
 	// render at true resolution; no-op when unchanged or before CreateContext
 	void ResizeIfNeeded(SDL_Window* window);
+	// MacRenderScale applies only while a loaded game is running; the lobby
+	// and the loading screen render at full scale. Returns true when the
+	// render size must change (the caller then runs the window-resize path).
+	bool SetRenderScaleActive(bool active);
 	// NSWindow.backingScaleFactor with hardware-aware default-resolution
 	// caps: never above the physical panel's pixel ratio (macOS scaled
 	// desktops back the desktop with more pixels than the panel shows) and
