@@ -5,7 +5,7 @@
 # with approved baselines in testkit/visreg/<engine>/<demo>/.
 #
 # Usage: scripts/visreg.sh [--demo <file.sdfz>] [--content <dir>] [--bless]
-#   --demo     replay to play (default deps/replays-0902/glacial-gap-0902.sdfz)
+#   --demo     replay to play (default deps/replays-0903/heartbreak-hill-0903.sdfz)
 #   --content  data dir with the game, map and lobby packages (default: the
 #              launcher's write dir; read only, the run uses its own write dir)
 #   --bless    after a run, copy the pictures into testkit/visreg as the new
@@ -39,7 +39,7 @@ BAR="$(cd "$(dirname "$0")/.." && pwd)"   # always this checkout: an inherited $
 # bundle), which is why this runs the packaged engine.
 APP="${VISREG_APP:-$BAR/release-artifacts/Tellurion.app}"
 C="$APP/Contents"; RES="$C/Resources"
-DEMO="$BAR/deps/replays-0902/glacial-gap-0902.sdfz"
+DEMO="$BAR/deps/replays-0903/heartbreak-hill-0903.sdfz"
 CONTENT="$HOME/Library/Application Support/Beyond-All-Reason-mac"
 BLESS=0
 while [ $# -gt 0 ]; do
