@@ -6,6 +6,8 @@
 
 #include <cmath>
 #include <cstring>
+#include <unordered_map>
+#include <utility>
 
 #include <glad/glad.h>
 
@@ -57,17 +59,45 @@ namespace {
 		return fbo;
 	}
 
+	// interface panels Lua renders into its own textures (gl.CreateTexture
+	// with fbo=true): their storage is allocated at full resolution, so calls
+	// on their framebuffers are scaled like the default framebuffer's
+	std::unordered_map<GLuint, std::pair<float, float>> panels;
+
 	// true when calls on this binding address the full-size default
 	// framebuffer in engine coordinates, so they need scaling
-	bool Scaled(GLenum which)
+	bool ScaledDefault(GLenum which)
 	{
 		if (!enabled || inWorld || bypass > 0 || getIntegerv == nullptr)
 			return false;
 		return Binding(which) == 0;
 	}
 
-	GLint ScaleX(GLint v) { return GLint(std::lround(v * sx)); }
-	GLint ScaleY(GLint v) { return GLint(std::lround(v * sy)); }
+	// the default framebuffer in the interface pass, or a full-resolution panel
+	// texture (at any time): fx, fy are the factors from engine coordinates
+	bool Scaled(GLenum which, float& fx, float& fy)
+	{
+		if (!enabled || bypass > 0 || getIntegerv == nullptr)
+			return false;
+		const GLint fbo = Binding(which);
+		if (fbo == 0) {
+			if (inWorld)
+				return false;
+			fx = sx; fy = sy;
+			return true;
+		}
+		if (panels.empty())
+			return false;
+		const auto it = panels.find(GLuint(fbo));
+		if (it == panels.end())
+			return false;
+		fx = it->second.first; fy = it->second.second;
+		return true;
+	}
+
+	GLint Scale(GLint v, float f) { return GLint(std::lround(v * f)); }
+	GLint ScaleX(GLint v) { return Scale(v, sx); }
+	GLint ScaleY(GLint v) { return Scale(v, sy); }
 
 	void Destroy(Target& t)
 	{
@@ -158,16 +188,18 @@ namespace {
 				values[0] = 0;
 			return;
 		}
-		if ((name == GL_VIEWPORT || name == GL_SCISSOR_BOX) && Binding(GL_DRAW_FRAMEBUFFER_BINDING) == 0) {
-			values[0] = GLint(std::lround(values[0] / sx)); values[1] = GLint(std::lround(values[1] / sy));
-			values[2] = GLint(std::lround(values[2] / sx)); values[3] = GLint(std::lround(values[3] / sy));
+		float fx = 1.0f, fy = 1.0f;
+		if ((name == GL_VIEWPORT || name == GL_SCISSOR_BOX) && Scaled(GL_DRAW_FRAMEBUFFER_BINDING, fx, fy)) {
+			values[0] = GLint(std::lround(values[0] / fx)); values[1] = GLint(std::lround(values[1] / fy));
+			values[2] = GLint(std::lround(values[2] / fx)); values[3] = GLint(std::lround(values[3] / fy));
 		}
 	}
 
 	void APIENTRY ViewportW(GLint x, GLint y, GLsizei w, GLsizei h)
 	{
-		if (Scaled(GL_DRAW_FRAMEBUFFER_BINDING)) {
-			viewport(ScaleX(x), ScaleY(y), ScaleX(w), ScaleY(h));
+		float fx = 1.0f, fy = 1.0f;
+		if (Scaled(GL_DRAW_FRAMEBUFFER_BINDING, fx, fy)) {
+			viewport(Scale(x, fx), Scale(y, fy), Scale(w, fx), Scale(h, fy));
 			return;
 		}
 		viewport(x, y, w, h);
@@ -175,8 +207,9 @@ namespace {
 
 	void APIENTRY ScissorW(GLint x, GLint y, GLsizei w, GLsizei h)
 	{
-		if (Scaled(GL_DRAW_FRAMEBUFFER_BINDING)) {
-			scissor(ScaleX(x), ScaleY(y), ScaleX(w), ScaleY(h));
+		float fx = 1.0f, fy = 1.0f;
+		if (Scaled(GL_DRAW_FRAMEBUFFER_BINDING, fx, fy)) {
+			scissor(Scale(x, fx), Scale(y, fy), Scale(w, fx), Scale(h, fy));
 			return;
 		}
 		scissor(x, y, w, h);
@@ -184,13 +217,14 @@ namespace {
 
 	void BlitScaled(PFNGLBLITFRAMEBUFFERPROC real, GLint sx0, GLint sy0, GLint sx1, GLint sy1, GLint dx0, GLint dy0, GLint dx1, GLint dy1, GLbitfield mask, GLenum filter)
 	{
-		if (Scaled(GL_READ_FRAMEBUFFER_BINDING)) {
-			sx0 = ScaleX(sx0); sx1 = ScaleX(sx1);
-			sy0 = ScaleY(sy0); sy1 = ScaleY(sy1);
+		float fx = 1.0f, fy = 1.0f;
+		if (Scaled(GL_READ_FRAMEBUFFER_BINDING, fx, fy)) {
+			sx0 = Scale(sx0, fx); sx1 = Scale(sx1, fx);
+			sy0 = Scale(sy0, fy); sy1 = Scale(sy1, fy);
 		}
-		if (Scaled(GL_DRAW_FRAMEBUFFER_BINDING)) {
-			dx0 = ScaleX(dx0); dx1 = ScaleX(dx1);
-			dy0 = ScaleY(dy0); dy1 = ScaleY(dy1);
+		if (Scaled(GL_DRAW_FRAMEBUFFER_BINDING, fx, fy)) {
+			dx0 = Scale(dx0, fx); dx1 = Scale(dx1, fx);
+			dy0 = Scale(dy0, fy); dy1 = Scale(dy1, fy);
 		}
 		real(sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1, mask, filter);
 	}
@@ -209,7 +243,7 @@ namespace {
 	template<typename F>
 	void ReadEngineSize(F&& read)
 	{
-		if (!Scaled(GL_READ_FRAMEBUFFER_BINDING) || !Ensure(readCopy, "read copy")) {
+		if (!ScaledDefault(GL_READ_FRAMEBUFFER_BINDING) || !Ensure(readCopy, "read copy")) {
 			read();
 			return;
 		}
@@ -319,6 +353,34 @@ void BeginInterface()
 }
 
 int FontRasterScale() { return enabled ? 2 : 1; }
+
+bool PanelSize(int w, int h, int& outW, int& outH)
+{
+	outW = w; outH = h;
+	if (!enabled || w <= 0 || h <= 0 || (sx <= 1.0f && sy <= 1.0f))
+		return false;
+	// a texture with the screen's shape is a screen buffer (copies of the
+	// screen, blur and bloom passes) that code fills at engine size: leave it
+	const int vw = globalRendering->viewSizeX, vh = globalRendering->viewSizeY;
+	if (vw > 0 && vh > 0 && std::abs(float(w) / float(h) - float(vw) / float(vh)) < 0.01f)
+		return false;
+	outW = int(std::lround(w * sx));
+	outH = int(std::lround(h * sy));
+	return true;
+}
+
+void RegisterPanel(unsigned int fbo, int w, int h, int physW, int physH)
+{
+	if (!enabled || fbo == 0 || w <= 0 || h <= 0)
+		return;
+	panels[fbo] = {float(physW) / float(w), float(physH) / float(h)};
+}
+
+void UnregisterPanel(unsigned int fbo)
+{
+	if (fbo != 0)
+		panels.erase(fbo);
+}
 
 Bypass::Bypass() { ++bypass; }
 Bypass::~Bypass() { --bypass; }

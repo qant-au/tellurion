@@ -40,6 +40,14 @@ namespace MacCrisp {
 	// glyph raster scale for CFontTexture (1 when off)
 	int FontRasterScale();
 
+	// Lua render-to-texture panels (gl.CreateTexture with fbo=true): the size
+	// to allocate so the panel is drawn at full resolution (false and the
+	// same size when off, or for a texture with the screen's shape), and the
+	// framebuffers whose viewport and scissor are scaled to that storage
+	bool PanelSize(int w, int h, int& outW, int& outH);
+	void RegisterPanel(unsigned int fbo, int w, int h, int physW, int physH);
+	void UnregisterPanel(unsigned int fbo);
+
 	// the present path: raw access to the full-size default framebuffer
 	struct Bypass {
 		Bypass();

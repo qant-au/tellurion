@@ -13,6 +13,10 @@
 
 #include "fmt/format.h"
 
+#if defined(__APPLE__) && !defined(HEADLESS)
+#include "System/Platform/Mac/CrispInterface.h"
+#endif
+
 
 namespace Impl {
 	static inline bool IsValidLuaTextureTarget(GLenum target) {
@@ -60,12 +64,23 @@ std::string LuaTextures::Create(const Texture& tex)
 	GLenum dataFormat = GL::GetDataFormatFromInternalFormat(tex.format);
 	GLenum dataType   = GL::GetDataTypeFromInternalFormat(tex.format);
 
+	// storage size: Lua keeps seeing tex.xsize x tex.ysize. With the macOS
+	// MacCrispInterface mode a render-to-texture panel is stored at full
+	// resolution, so the interface (and its text) drawn into it stays sharp.
+	GLsizei storeX = tex.xsize;
+	GLsizei storeY = tex.ysize;
+	bool crispPanel = false;
+#if defined(__APPLE__) && !defined(HEADLESS)
+	if (tex.fbo != 0 && tex.target == GL_TEXTURE_2D)
+		crispPanel = MacCrisp::PanelSize(tex.xsize, tex.ysize, storeX, storeY);
+#endif
+
 	switch (tex.target) {
 		case GL_TEXTURE_1D: {
 			glTexImage1D(tex.target, 0, tex.format, tex.xsize                      , tex.border, dataFormat, dataType, nullptr);
 		} break;
 		case GL_TEXTURE_2D: {
-			glTexImage2D(tex.target, 0, tex.format, tex.xsize, tex.ysize           , tex.border, dataFormat, dataType, nullptr);
+			glTexImage2D(tex.target, 0, tex.format, storeX, storeY                 , tex.border, dataFormat, dataType, nullptr);
 		} break;
 		case GL_TEXTURE_2D_ARRAY: [[fallthrough]];
 		case GL_TEXTURE_3D: {
@@ -121,7 +136,7 @@ std::string LuaTextures::Create(const Texture& tex)
 			glGenRenderbuffersEXT(1, &fboDepth);
 			glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, fboDepth);
 			GLenum depthFormat = static_cast<GLenum>(CGlobalRendering::DepthBitsToFormat(globalRendering->supportDepthBufferBitDepth));
-			glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, depthFormat, tex.xsize, tex.ysize);
+			glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, depthFormat, storeX, storeY);
 			glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, fboDepth);
 		}
 
@@ -143,7 +158,13 @@ std::string LuaTextures::Create(const Texture& tex)
 		}
 
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, currentFBO);
+
+#if defined(__APPLE__) && !defined(HEADLESS)
+		if (crispPanel)
+			MacCrisp::RegisterPanel(fbo, tex.xsize, tex.ysize, storeX, storeY);
+#endif
 	}
+	(void)crispPanel;
 
 	std::string str = fmt::format("{}{}", prefix, ++lastCode);
 
@@ -189,6 +210,9 @@ bool LuaTextures::Free(const std::string& name)
 		glDeleteTextures(1, &tex.id);
 
 		if (FBO::IsSupported()) {
+#if defined(__APPLE__) && !defined(HEADLESS)
+			MacCrisp::UnregisterPanel(tex.fbo);
+#endif
 			glDeleteFramebuffersEXT(1, &tex.fbo);
 			glDeleteRenderbuffersEXT(1, &tex.fboDepth);
 		}
@@ -214,6 +238,9 @@ bool LuaTextures::FreeFBO(const std::string& name)
 
 	Texture& tex = textureVec[it->second];
 
+#if defined(__APPLE__) && !defined(HEADLESS)
+	MacCrisp::UnregisterPanel(tex.fbo);
+#endif
 	glDeleteFramebuffersEXT(1, &tex.fbo);
 	glDeleteRenderbuffersEXT(1, &tex.fboDepth);
 
@@ -230,6 +257,9 @@ void LuaTextures::FreeAll()
 		glDeleteTextures(1, &tex.id);
 
 		if (FBO::IsSupported()) {
+#if defined(__APPLE__) && !defined(HEADLESS)
+			MacCrisp::UnregisterPanel(tex.fbo);
+#endif
 			glDeleteFramebuffersEXT(1, &tex.fbo);
 			glDeleteRenderbuffersEXT(1, &tex.fboDepth);
 		}
