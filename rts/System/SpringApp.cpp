@@ -913,9 +913,11 @@ bool SpringApp::Update()
 	globalRendering->UpdateTimer();
 
 #if defined(__APPLE__) && !defined(HEADLESS)
-	// MacRenderScale only while a loaded game runs, so the lobby keeps its
-	// full-scale layout; a change goes through the normal window-resize path
-	if (MacPresent::SetRenderScaleActive(game != nullptr && game->IsDoneLoading())) {
+	// MacRenderScale only while a loaded game is the active controller, so the
+	// lobby keeps its full-scale layout, also when it is shown over a running
+	// game (Return to lobby); a change goes through the normal resize path
+	const bool gameOnScreen = (game != nullptr && game->IsDoneLoading() && activeController == game);
+	if (MacPresent::SetRenderScaleActive(gameOnScreen)) {
 		SDL_Event ev = {};
 		ev.type = SDL_WINDOWEVENT;
 		ev.window.event = SDL_WINDOWEVENT_SIZE_CHANGED;
