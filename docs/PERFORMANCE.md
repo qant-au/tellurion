@@ -84,7 +84,8 @@ synchronous read. It logs a warning when it leaves the direct path and when it
 ends up on the CPU staging path.
 
 `SPRING_MAC_LEGACY_PRESENT=1` forces the original CPU staging path. The
-two-frame depth is fixed in release builds.
+two-frame depth is fixed unless the engine is a
+[diagnostics build](#diagnostics-builds).
 
 ## Present Off the Render Thread
 
@@ -361,7 +362,8 @@ compiled in:
   and path)
 - `SPRING_FRAME_CAPTURE` and `SPRING_MAC_DUMP_FRAME` (raw frame dumps)
 
-None of this is in a release build.
+The option is off by default and `scripts/build-engine.sh` does not turn it
+on, so a normal build, the packaged app included, has none of this.
 
 ### A Result That Looks Too Good
 
@@ -463,7 +465,7 @@ for the driver's threads or for something else.
 ### Present Latency of Two Frames
 
 The readback ring presents the frame packed two frames earlier, and that depth
-is fixed in release builds. Up to two presents can also be queued behind it.
+is fixed in a normal build. Up to two presents can also be queued behind it.
 At 60 frames per second the ring alone adds about 33 ms between a frame being
 drawn and reaching the compositor. That does not lower the frame rate. It is
 what the player feels when dragging a selection box or moving the camera.
