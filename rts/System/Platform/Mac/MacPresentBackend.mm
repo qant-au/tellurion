@@ -845,9 +845,13 @@ bool SetRenderScaleActive(bool active)
 		return false;
 	if (ConfiguredRenderScale() >= 1.0)
 		return false; // nothing to change: the render size is the same either way
-	LOG("[EGL] MacRenderScale %s (%s)", active ? "applied" : "lifted", active ? "game loaded" : "no game: lobby at full scale");
+	LOG("[EGL] MacRenderScale %s (%s)", active ? "applied" : "lifted", active ? "game on screen" : "lobby at full scale");
 	return true;
 }
+
+static std::atomic<bool> lobbyOverlay = {false};
+void SetLobbyOverlay(bool shown) { lobbyOverlay.store(shown, std::memory_order_relaxed); }
+bool LobbyOverlay() { return lobbyOverlay.load(std::memory_order_relaxed); }
 
 } // namespace MacPresent
 

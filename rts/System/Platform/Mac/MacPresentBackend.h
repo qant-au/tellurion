@@ -42,6 +42,10 @@ namespace MacPresent {
 	// and the loading screen render at full scale. Returns true when the
 	// render size must change (the caller then runs the window-resize path).
 	bool SetRenderScaleActive(bool active);
+	// BAR's lobby shown over a running game (its LobbyOverlayActive message);
+	// the render scale is lifted while it shows
+	void SetLobbyOverlay(bool shown);
+	bool LobbyOverlay();
 	// NSWindow.backingScaleFactor with hardware-aware default-resolution
 	// caps: never above the physical panel's pixel ratio (macOS scaled
 	// desktops back the desktop with more pixels than the panel shows) and
