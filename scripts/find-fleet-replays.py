@@ -16,7 +16,9 @@ import urllib.parse
 import urllib.request
 
 API = "https://api.bar-rts.com"
-CDN = "https://storage.uk.cdn.beyondallreason.dev/replays/"
+# The replay site's Download link (bar-rts.com $config.objectStorageUrl + /demos/);
+# storage.uk.cdn.beyondallreason.dev stopped resolving by 2026-11-17.
+CDN = "https://storage.uk.cloud.ovh.net/v1/AUTH_10286efc0d334efd917d476d7183232e/BAR/demos/"
 UA = {"User-Agent": "replay-finder (Tellurion sync validation)"}
 
 
@@ -49,9 +51,9 @@ def main():
             time.sleep(0.2)
             if d.get("engineVersion") != a.engine:
                 continue
-            players = sum(len(at.get("Teams", [])) for at in d.get("AllyTeams", []))
+            players = " v ".join(str(len(at.get("Players", [])) + len(at.get("AIs", []))) for at in d.get("AllyTeams", []))
             url = CDN + urllib.parse.quote(d["fileName"])
-            print(f"{row['id']}\t{minutes:.1f} min\t{row['Map'].get('scriptName')}\t{players} teams\t{d.get('gameVersion')}\t{url}")
+            print(f"{row['id']}\t{minutes:.1f} min\t{row['Map'].get('scriptName')}\t{players}\t{d.get('gameVersion')}\t{url}")
             found += 1
             if found >= a.want:
                 print(f"# scanned {scanned} replay details over {page} page(s)")
