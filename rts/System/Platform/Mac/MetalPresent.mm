@@ -309,6 +309,17 @@ static bool PerfPinActive()
 	return s_on;
 }
 
+// SPRING_MAC_FRAMEBUFFER_ONLY=1 (test switch), parsed once: leave the layer's
+// drawables render-target-only, which is CAMetalLayer's own default and lets
+// Core Animation optimise them for display. The staging path then draws into
+// the drawable with a render pass, because a blit needs a readable drawable.
+// Off by default until it has been measured (docs/PERFORMANCE.md).
+static bool FramebufferOnly()
+{
+	static const bool s_on = (getenv("SPRING_MAC_FRAMEBUFFER_ONLY") != nullptr);
+	return s_on;
+}
+
 // Pacing to the display (the VSync setting, see MetalPresent.h).
 static std::atomic<bool> g_paceToDisplay{false};
 
@@ -360,7 +371,10 @@ bool MacMetalPresent_Init(void* caMetalLayer)
 
 	g_layer.device          = g_device;
 	g_layer.pixelFormat     = MTLPixelFormatBGRA8Unorm;
-	g_layer.framebufferOnly  = NO; // allow the drawable to be a blit destination
+	// NO lets the staging path blit into the drawable (see FramebufferOnly)
+	g_layer.framebufferOnly  = FramebufferOnly() ? YES : NO;
+	if (FramebufferOnly())
+		LOG("[MetalPresent] framebufferOnly=YES (SPRING_MAC_FRAMEBUFFER_ONLY)");
 	// nextDrawable was pacing light scenes to exactly refresh/2 (60 on the
 	// 120Hz panel, metal-submit ~12ms): make the pool depth explicit.
 	// displaySync stays ON - this only deepens buffering, never tears.
@@ -474,6 +488,12 @@ void MacMetalPresent_PresentBGRA(int w, int h, const void* pixels, bool flipY)
 				   withBytes:src
 				 bytesPerRow:rowBytes];
 
+	// a render-target-only drawable cannot be blitted into: without the
+	// pipelines there is no way to show this frame (the failure is logged)
+	const bool drawPass = FramebufferOnly();
+	if (drawPass && !BuildPresentPipelines())
+		return;
+
 	id<CAMetalDrawable> drawable = [g_layer nextDrawable];
 	if (drawable == nil) {
 		LOG_L(L_WARNING, "[MetalPresent] nextDrawable returned nil - frame not presented");
@@ -481,17 +501,31 @@ void MacMetalPresent_PresentBGRA(int w, int h, const void* pixels, bool flipY)
 	}
 
 	id<MTLCommandBuffer> cb = [g_queue commandBuffer];
-	id<MTLBlitCommandEncoder> blit = [cb blitCommandEncoder];
-	[blit copyFromTexture:g_staging
-			  sourceSlice:0
-			  sourceLevel:0
-			 sourceOrigin:MTLOriginMake(0, 0, 0)
-			   sourceSize:MTLSizeMake(w, h, 1)
-				toTexture:drawable.texture
-		 destinationSlice:0
-		 destinationLevel:0
-		destinationOrigin:MTLOriginMake(0, 0, 0)];
-	[blit endEncoding];
+	if (drawPass) {
+		// the rows were flipped on the CPU above, so the unflipped pipeline
+		MTLRenderPassDescriptor* rpd = [MTLRenderPassDescriptor renderPassDescriptor];
+		rpd.colorAttachments[0].texture     = drawable.texture;
+		rpd.colorAttachments[0].loadAction  = MTLLoadActionDontCare;
+		rpd.colorAttachments[0].storeAction = MTLStoreActionStore;
+		id<MTLRenderCommandEncoder> enc = [cb renderCommandEncoderWithDescriptor:rpd];
+		[enc setRenderPipelineState:g_presentPSO];
+		[enc setFragmentTexture:g_staging atIndex:0];
+		[enc setFragmentSamplerState:g_linearSampler atIndex:0];
+		[enc drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
+		[enc endEncoding];
+	} else {
+		id<MTLBlitCommandEncoder> blit = [cb blitCommandEncoder];
+		[blit copyFromTexture:g_staging
+				  sourceSlice:0
+				  sourceLevel:0
+				 sourceOrigin:MTLOriginMake(0, 0, 0)
+				   sourceSize:MTLSizeMake(w, h, 1)
+					toTexture:drawable.texture
+			 destinationSlice:0
+			 destinationLevel:0
+			destinationOrigin:MTLOriginMake(0, 0, 0)];
+		[blit endEncoding];
+	}
 	[cb presentDrawable:drawable];
 	[cb commit];
 	} // @autoreleasepool

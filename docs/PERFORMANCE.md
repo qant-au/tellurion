@@ -514,8 +514,16 @@ direct path and the IOSurface path draw with a render pass, which works with
 `framebufferOnly = YES`. Apple's documentation says Core Animation can
 optimise the drawables for display when that is set.
 
-The change is small: set it to `YES` and have the staging path draw with a
-render pass too. The gain is probably small as well, and it is not measured.
+The change is in the engine behind a test switch, off by default.
+`SPRING_MAC_FRAMEBUFFER_ONLY=1` sets the layer to `YES` and makes the staging
+path draw with a render pass too. The engine logs
+`[MetalPresent] framebufferOnly=YES` once when it is on.
+
+The gain is probably small, and it is not measured. Compare the same run with
+the switch on and off, windowed and in full screen. Apple's Metal performance
+overlay (`MTL_HUD_ENABLED=1`) shows whether frames go straight to the display
+or through the compositor, which is where a difference would come from. If
+it helps, on becomes the default and the switch goes.
 
 ### A Present With No Readback
 
