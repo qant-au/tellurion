@@ -257,7 +257,8 @@ are compiled in.
 | `SPRING_MAC_PERF_PIN=1` | Fixed presentation conditions for picture comparison and benchmarks. Turns display pacing off. |
 | `SPRING_MAC_PERF_RENDER_SIZE=WxH` | Fixed render size, independent of the window size. |
 
-Diagnostics builds only (`-DSPRING_MAC_DIAGNOSTICS=ON`):
+Diagnostics builds only (`scripts/build-engine.sh --mac-diagnostics`, which
+sets `-DSPRING_MAC_DIAGNOSTICS=ON`):
 `SPRING_MAC_PRESENT_TEST`, `SPRING_FRAME_CAPTURE` (with `_EVERY` and
 `_LIMIT`), `SPRING_MAC_DUMP_FRAME`, `SPRING_TIME_PRESENT`,
 `SPRING_MAC_PRESENT_LAG`, `SPRING_MAC_PRESENT_GPUPACK`, and
@@ -293,6 +294,7 @@ are ignored, and the launcher finds its tools on the system path only.
 | `ENGINE_ALLOW_SRC_SWITCH=1` | `build-engine.sh` | Allow a build folder configured for another source tree to be reused. |
 | `AI_TYPES` | `build-engine.sh` | Which AI interfaces to build (default `NATIVE`). |
 | `WITH_SYNCTEST=1`, `WITH_VISREG=1` | `build-engine.sh` | Same as `--with-synctest`, `--with-visreg`. |
+| `MAC_DIAGNOSTICS=1` | `build-engine.sh` | Same as `--mac-diagnostics`: a diagnostics build (`-DSPRING_MAC_DIAGNOSTICS=ON`) in `build-engine-diag/`. It refuses `build-engine/`, the folder the app is packaged from. For measuring on the build machine, never for release. |
 | `MESA_PREFIX`, `MESA_SRC`, `MESA_PATCH_DIR`, `MESA_FORCE_REBUILD=1` | `build-mesa-kk.sh` | Driver install prefix, source checkout, patch folder, and a forced rebuild. |
 | `DRIVER_DEPS_FORCE=1`, `STATIC_LIBS_FORCE=1`, `SHARED_LIBS_FORCE=1` | the dependency build scripts | Rebuild that dependency set even when its stamp matches. |
 | `JOBS` | `check-nonmac.sh` | Parallel build jobs in Docker. |

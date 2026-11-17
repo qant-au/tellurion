@@ -354,16 +354,17 @@ same scene.
 
 ### Diagnostics Builds
 
-A build configured with `-DSPRING_MAC_DIAGNOSTICS=ON` has the heavier tools
-compiled in:
+A build made with `scripts/build-engine.sh --mac-diagnostics` (which sets
+`-DSPRING_MAC_DIAGNOSTICS=ON`) has the heavier tools compiled in:
 
 - `SPRING_TIME_PRESENT` (per-stage present timing)
 - `SPRING_MAC_PRESENT_LAG` and `SPRING_MAC_PRESENT_GPUPACK` (readback depth
   and path)
 - `SPRING_FRAME_CAPTURE` and `SPRING_MAC_DUMP_FRAME` (raw frame dumps)
 
-The option is off by default and `scripts/build-engine.sh` does not turn it
-on, so a normal build, the packaged app included, has none of this.
+The option is off by default, so a normal build, the packaged app included,
+has none of this. A diagnostics build goes into `build-engine-diag/` and
+leaves the folder the app is packaged from alone.
 
 ### A Result That Looks Too Good
 

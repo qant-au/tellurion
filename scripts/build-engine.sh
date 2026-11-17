@@ -2,7 +2,7 @@
 # Build the Recoil engine with the macOS layer against the local Mesa
 # KosmicKrisp stack. Targets, tests and variables: docs/BUILDING.md.
 #
-# Usage: build-engine.sh [--with-synctest] [--with-visreg]
+# Usage: build-engine.sh [--with-synctest] [--with-visreg] [--mac-diagnostics]
 #
 # Tests are OPT-IN (the build itself always runs its fast artifact gates:
 # libm parity hashes, arch checks). Run tests with the build for major
@@ -11,15 +11,23 @@
 #                    standalone: scripts/run-synctest.sh
 #   --with-visreg    visual regression vs baselines (~2 min), on the last built
 #                    app bundle. standalone: scripts/visreg.sh
-# Env equivalents: WITH_SYNCTEST=1 WITH_VISREG=1.
+#
+# --mac-diagnostics makes a diagnostics build (-DSPRING_MAC_DIAGNOSTICS=ON): the
+# heavier macOS test switches are compiled in (docs/BUILDING.md lists them). It
+# builds into build-engine-diag/, so the folder the app is packaged from keeps
+# its normal build, and it refuses that folder if ENGINE_BUILD names it. A
+# diagnostics build is for measuring on this machine, never for release.
+# Env equivalents: WITH_SYNCTEST=1 WITH_VISREG=1 MAC_DIAGNOSTICS=1.
 set -euo pipefail
 
 WITH_SYNCTEST="${WITH_SYNCTEST:-0}"
 WITH_VISREG="${WITH_VISREG:-0}"
+MAC_DIAGNOSTICS="${MAC_DIAGNOSTICS:-0}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --with-synctest) WITH_SYNCTEST=1; shift;;
     --with-visreg)   WITH_VISREG=1; shift;;
+    --mac-diagnostics) MAC_DIAGNOSTICS=1; shift;;
     --with-perf)     echo "--with-perf: there is no perf gate yet (scripts/visreg.sh has none)"; exit 2;;
     *) echo "unknown arg: $1 (see header for usage)"; exit 2;;
   esac
@@ -32,7 +40,18 @@ case "$BAR" in *" "*) echo "FATAL: the checkout path contains a space, which the
 export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-26.0}"
 DEPS="$BAR/deps"
 SRC="${ENGINE_SRC:-$([ -d "$BAR/rts" ] && echo "$BAR" || echo "$BAR/engine")}"
-BUILD="${ENGINE_BUILD:-$BAR/build-engine}"
+if [ "$MAC_DIAGNOSTICS" = 1 ]; then
+  BUILD="${ENGINE_BUILD:-$BAR/build-engine-diag}"
+  if [ "$BUILD" = "$BAR/build-engine" ]; then
+    echo "FATAL: a diagnostics build may not go into $BUILD, the folder the app is packaged from." >&2
+    echo "  Leave ENGINE_BUILD unset (build-engine-diag/) or name another folder." >&2
+    exit 1
+  fi
+  SPRING_MAC_DIAGNOSTICS=ON
+else
+  BUILD="${ENGINE_BUILD:-$BAR/build-engine}"
+  SPRING_MAC_DIAGNOSTICS=OFF
+fi
 
 # MESA_PREFIX: which driver install the engine links against (absolute
 # install-name — the binary is bound to THIS prefix's libEGL at runtime;
@@ -150,6 +169,7 @@ cmake --fresh -S "$SRC" -B "$BUILD" -G Ninja \
   -DCMAKE_OBJC_COMPILER_LAUNCHER=ccache \
   -DCMAKE_OBJCXX_COMPILER_LAUNCHER=ccache \
   -DSPRING_MAC_LIBEGL="$MESA_LIBEGL" \
+  -DSPRING_MAC_DIAGNOSTICS="$SPRING_MAC_DIAGNOSTICS" \
   -DOPENAL_SOFT_PREFIX="$SHARED_PREFIX"
 
 NINJA_TARGETS=(spring spring-headless spring-dedicated unitsync pr-downloader_cli basecontent)
@@ -279,6 +299,7 @@ file "$BUILD/tools/pr-downloader/src/pr-downloader"
 echo "--- spring links:"
 otool -L "$BUILD/spring" | head -25
 ls "$BUILD"/*.sdz 2>/dev/null || ls "$BUILD"/base/*.sdz 2>/dev/null || find "$BUILD" -name "*.sdz" | head
+[ "$MAC_DIAGNOSTICS" = 1 ] && echo "DIAGNOSTICS BUILD in $BUILD: for measuring on this machine, not for release"
 echo "ENGINE_BUILD_OK"
 
 # ---- opt-in test stages (see header) ------------------------------------------
