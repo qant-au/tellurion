@@ -5,7 +5,7 @@
 #
 # Builds in build-tests/, NOT build-engine/: a bare ninja in build-engine/ undoes
 # the gcc-swapped libm objects (see build-engine.sh). AI_TYPES=NONE.
-# Expected on 2026.09.02: 29 of 30, the one failure testCreg, for one known
+# Expected on 2026.09.03: 30 of 31 (29 of 30 on 2026.09.02), the one failure testCreg, for one known
 # upstream gap (an unregistered CProjectile member, reported as a missing byte
 # "between drawSorted & blockPreciseCol" in every projectile class). testCreg is
 # excused for that message only; any other class it reports fails the run.

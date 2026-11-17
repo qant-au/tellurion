@@ -155,6 +155,40 @@ as macOS. Not done on this engine version: a full-length team game, a PvE
 game (Raptors, Scavengers), a run of the Windows binary, and any live
 multiplayer game. Section 4 below was measured on 2025.06.24.
 
+### 3c. Engine 2026.09.03, verified 2026-11-17 (this repository, commit `4db8b41ab1`)
+
+BAR production moved to 2026.09.03 on 2026-11-16, and it was merged the next
+day (tlr-066). Four upstream commits over 2026.09.02, one of them in synced
+code (#3759, the repeat-guard repair queue in `CommandAI`/`BuilderCAI`). Three
+public fleet replays recorded on 2026.09.03, found with
+`scripts/find-fleet-replays.py 2026.09.03` (game `test-31986-603f15d`, all
+recorded 2026-11-17):
+
+| Replay | Build | Result |
+|---|---|---|
+| 1v1, Heartbreak Hill v4.0.1 (21.6 min) | macOS arm64 | REPLAY_SYNC_OK, game end frame 38,930, 0 desyncs, 1,304 checksums |
+| same | **this repository, amd64 Linux** (upstream's build image, emulated) | REPLAY_SYNC_OK, game end frame 38,930, 0 desyncs, 1,304 checksums |
+| 2v2, Pinewood_Derby_V1 (16.8 min) | macOS arm64 | REPLAY_SYNC_OK, game end frame 30,136, 0 desyncs, 2,018 checksums |
+| 8v8, Sector 318C v1.0 (8.5 min) | macOS arm64 | REPLAY_SYNC_OK, game end frame 15,156, 0 desyncs, 7,364 checksums |
+
+Libm parity 21/21; streflop BIT-EXACT against SSE (47,852) and NEON (52,080);
+unit tests 30 of 31 on macOS and Linux (testCreg, as before); the Linux and
+Windows builds pass (`scripts/check-nonmac.sh`). The register (Appendix A) is
+unchanged.
+
+The sanitizer replay of the 1v1 and the 8v8 stays in sync and reports a third
+site in code that can reach synced state: `lua_tointeger`
+(`rts/lib/lua/src/lapi.cpp:330`), with `inf` from BAR's
+`Spring.SetUnitPosErrorParams` (nextPosErrorUpdate = `math.huge`). x86 stores
+`INT_MIN`, arm64 `INT_MAX`, and on both the position-error update that draws
+from `gsRNG` is skipped, so the simulation is the same. Giving arm64 the x86
+value was tried and **desynced all three demos** (5,743 warnings on the 8v8):
+clang folds `--nextPosErrorUpdate > 0` assuming no overflow and takes the update
+path. So it is left as upstream compiles it, listed in
+`testkit/sanitize/known-sites.txt`, and recorded as a Lua-visible difference
+in `docs/PARITY.md`. Not done on this version: a PvE game (Raptors,
+Scavengers), a run of the Windows binary, any live multiplayer game.
+
 ## 4. Live cross-platform multiplayer (the real thing)
 
 Replays prove the sim; live games additionally prove the network path, and
@@ -227,7 +261,7 @@ of these paths changes:
         'rts/Lua/LuaSynced*.cpp' rts/System/Sync rts/System/FastMath.h \
         rts/Net/GameServer.cpp rts/System/SpringMath.h rts/System/SpringMath.inl
 
-Measured against `2026.09.02` at commit `0f34580131`. `rts/lib/streflop` is
+Measured against `2026.09.03` at commit `4db8b41ab1` (2026-11-17): the same 11 files and the same changes as against `2026.09.02` at `0f34580131`; the tag changed none of them. `rts/lib/streflop` is
 unchanged: it is the same submodule commit as the tag.
 
 | Change | Files | Applies to | Why the fleet's x86 results are unchanged |
@@ -255,5 +289,5 @@ register listed them): the COB float-to-short casts (#3075), the
 emulation belonged to the 2025.06.24 lane and are not in this tree: here
 `math::floor(float)` is streflop's software floor on every architecture.
 
-Sections 3a and 3b are the evidence for this table. A row changed after the
+Sections 3a, 3b and 3c are the evidence for this table. A row changed after the
 date of a replay is not covered by that replay.

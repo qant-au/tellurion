@@ -6,7 +6,7 @@ Every row is measured, dated and re-checkable with the command beside it; where 
 two differ, the difference is either forced by the platform and stated, or open and
 linked to the work that closes it.
 
-**Measured: 2026-11-08** (engine row and simulation re-measured 2026-11-09; Linux replay, rendering and update rows 2026-11-10), macOS 27.2 on an M3 Ultra, engine `2026.09.02`.
+**Measured: 2026-11-08** (engine row and simulation re-measured 2026-11-09; Linux replay, rendering and update rows 2026-11-10; engine, simulation, Linux replay, libm and rendering rows re-measured on 2026.09.03 on 2026-11-17), macOS 27.2 on an M3 Ultra, engine `2026.09.03`.
 Update the date and the evidence column whenever a row is re-measured; a row that
 has not been re-checked after a change to the thing it measures is stale.
 
@@ -28,9 +28,9 @@ has not been re-checked after a change to the thing it measures is stale.
 
 | Area | Windows / Linux (official) | macOS (this repository) | Status | Evidence / re-check |
 |---|---|---|---|---|
-| Engine version | BAR production: `2026.07.04`; BAR Engine Test: `2026.09.02` | upstream tag `2026.09.02` + macOS layer | **match with Engine Test; ahead of production** (by decision: releases target the engine BAR is moving to) | `build-engine/spring --version`; engines per setup in BYAR-Chobby `dist_cfg/config.json` |
-| Simulation vs fleet recordings | reference | 2026.09.02: a 13.6 min 1v1 recorded on the fleet, 0 desyncs (2026.07.04: a 36.5 min 8v8 and a 1v1, 0 desyncs) | **match** | `scripts/replay-check.sh <demo>` (REPLAY_SYNC_OK); `docs/SYNC_VALIDATION.md` §3a, §3b |
-| Simulation on this repository's own Linux build | n/a | 2026.09.02: the same 13.6 min 1v1 on amd64 Linux built from this tree (upstream's build image, emulated), 0 desyncs (2026.07.04: both replays, 0 desyncs) | **match** | `scripts/check-nonmac.sh linux`, then `scripts/replay-check.sh` in the build image; `docs/SYNC_VALIDATION.md` section 3b |
+| Engine version | BAR production: `2026.09.03` (since 2026-11-16); BAR Engine Test: `2026.11.02` | upstream tag `2026.09.03` + macOS layer | **match with production** | `build-engine/spring --version`; engines per setup in BYAR-Chobby `dist_cfg/config.json` |
+| Simulation vs fleet recordings | reference | 2026.09.03: a 1v1, a 2v2 and an 8v8 recorded on the fleet, 0 desyncs (2026.09.02: a 13.6 min 1v1; 2026.07.04: a 36.5 min 8v8 and a 1v1, 0 desyncs) | **match** | `scripts/replay-check.sh <demo>` (REPLAY_SYNC_OK); `docs/SYNC_VALIDATION.md` §3a, §3b, §3c |
+| Simulation on this repository's own Linux build | n/a | 2026.09.03: the 1v1 on amd64 Linux built from this tree (upstream's build image, emulated), 0 desyncs (2026.09.02: a 13.6 min 1v1; 2026.07.04: both replays, 0 desyncs) | **match** | `scripts/check-nonmac.sh linux`, then `scripts/replay-check.sh` in the build image; `docs/SYNC_VALIDATION.md` sections 3b, 3c |
 | libm / FP parity | gcc fleet build | gcc-15 dbl-64 swap; 21/21 double libm hashes equal to an x86 gcc build (no engine binary links a double libm function, so play runs on the float path only); streflop BIT-EXACT vs SSE (47,852) and NEON (52,080) | **match** | `scripts/build-engine.sh` gate; `scripts/run-synctest.sh` |
 | Live multiplayer | BAR servers | LAN and cross-platform play proven by the original port; **online disabled** in builds from this repository | **gap (policy)**: needs BAR's approval for this repository | issue #6 |
 | Unit tests | 29/30 on Linux (testCreg: an unregistered `CProjectile` member in upstream, one byte "between drawSorted & blockPreciseCol") | 29/30, same single failure | **match** | `scripts/run-unit-tests.sh`; `scripts/check-nonmac.sh linux` |
@@ -53,8 +53,9 @@ has not been re-checked after a change to the thing it measures is stale.
 
 ## Lua-Visible Differences From The Official Engine
 
-What game Lua can observe on this build against official 2026.09.02. Each
-comes from a change listed in `docs/UPSTREAM.md`, and each needs a changelog
+What game Lua can observe on this build against official 2026.09.03. Each
+comes from a change listed in `docs/UPSTREAM.md` (the last row from the
+instruction set, not from a change), and each needs a changelog
 entry in whichever upstream pull request carries it.
 
 | Difference | Where It Applies | From |
@@ -66,8 +67,9 @@ entry in whichever upstream pull request carries it.
 | `gl.CreateShader` fails a shader with a geometry stage on a driver where the engine's probe finds geometry shaders dead. | drivers without a geometry stage (this one) | #3539 |
 | LuaVAO draws do not enable primitive restart for list topologies. | every platform | #3516 |
 | `gl.GPUStamp(label)` is a new function (see `GPUTimers`); at most 64 distinct labels. | every platform | this repository |
-| `Engine.versionFull` carries the build marker, `2026.09.02 (macOS port <version>)`. `Engine.version` is unchanged. | macOS | this repository |
+| `Engine.versionFull` carries the build marker, `2026.09.03 (macOS port <version>)`. `Engine.version` is unchanged. | macOS | this repository |
 | `EdgeMoveWidth = 0` turns edge scrolling off. | every platform | #3341 |
+| A Lua integer argument that is out of `int` range or `inf` (BAR passes `math.huge` as `Spring.SetUnitPosErrorParams`' nextPosErrorUpdate) is stored as `INT_MAX`, where x86 stores `INT_MIN`; `Spring.GetUnitPosErrorParams` would read the difference. The simulation is the same (the update is skipped on both; 2026.09.03 fleet demos stay in sync), and forcing x86's value desyncs, so it is left as upstream compiles it. | arm64 | upstream `lua_tointeger`; `testkit/sanitize/known-sites.txt` |
 
 ## Re-checking everything
 

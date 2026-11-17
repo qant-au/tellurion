@@ -27,9 +27,10 @@ stays mechanical:
 ## Where The Repository Stands
 
 - **Base:** the upstream release tag named in [VERSIONS.md](VERSIONS.md). It
-  was merged on 2026-11-09 (commit `c3f400b6cd`). It is BAR's Engine Test
-  engine and is ahead of production by decision: releases target the engine
-  BAR is moving to. Measure which engine each BAR setup runs; do not assume:
+  was merged on 2026-11-17 (commit `ebc076a531`, 2026.09.03, tlr-066). It is
+  BAR's production engine since 2026-11-16; Engine Test moved to 2026.11.02 the
+  same day. (2026.09.02 was merged on 2026-11-09, `c3f400b6cd`, ahead of
+  production by decision: releases target the engine BAR is moving to.) Measure which engine each BAR setup runs; do not assume:
   [BYAR-Chobby `dist_cfg/config.json`](https://github.com/beyond-all-reason/BYAR-Chobby/blob/master/dist_cfg/config.json)
   (`manual-linux` and `manual-win` are production, the `*-test-engine`
   entries are the next engine).
