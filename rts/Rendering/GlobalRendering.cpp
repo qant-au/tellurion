@@ -637,6 +637,14 @@ bool CGlobalRendering::CreateWindowAndContext(const char* title)
 			++msaaLevel;
 	}
 
+#if defined(__APPLE__) && !defined(HEADLESS)
+	// SDL raises a fullscreen window to the shielding level, above the menu bar
+	// and its menus, so a menu opened from the menu bar drew behind the game.
+	// The picture is presented through a Metal layer, so the old GL reason for
+	// it does not apply; at the normal level the menus show over the game.
+	SDL_SetHint(SDL_HINT_ALLOW_TOPMOST, "0");
+#endif
+
 	if ((sdlWindow = CreateSDLWindow(title)) == nullptr)
 		return false;
 
