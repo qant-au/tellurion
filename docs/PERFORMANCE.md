@@ -259,6 +259,21 @@ not to compare frame rates across platforms (see [The Aim](#the-aim)).
 Whether MSAA is worth its cost on a Retina panel is a separate question. It
 has not been measured here.
 
+## Game Mode
+
+macOS has a Game Mode that gives a full-screen game priority on the CPU and
+the GPU and holds background work back. The app's `Info.plist` declares a
+games category, which is how macOS recognises a game.
+
+The engine does not run as the app's own process. The launcher starts it as a
+child, so that the lobby can come back after an engine error. Game Mode still
+turns on for it. This was checked on macOS 27.2 on 2026-11-18 and 2026-11-19.
+A game in full screen, started through the app, shows the "Game Mode: On"
+notice, and Apple's Metal performance overlay reports Game Mode on.
+
+It applies in full screen only. What it is worth in frame rate has not been
+measured.
+
 ## The Driver
 
 The driver is upstream Mesa at a pinned commit plus the patches in
@@ -397,9 +412,37 @@ time and is now part of upstream Mesa.
 
 ## Open Work
 
-The first seven items come from a review of the graphics path on 2026-11-17.
-None of them has been measured. Each one says what to test first. They are in
-the order of what they are expected to be worth.
+Six of the items below come from a review of the graphics path on 2026-11-17.
+They are in the order of what they were expected to be worth. Four of them
+were tested on 2026-11-18 and 2026-11-19, and each of those says what was
+found and what is left. The other two have not been measured.
+
+### The Test Runs of November 2026
+
+The tests were live games on an M3 Ultra (macOS 27.2, engine 2026.09.03, Mesa
+26.3.0), windowed, with the hitch log at 20 ms. Each was the same 3v3 skirmish
+on All That Glitters, with the same AIs and settings. They were games, not a
+replay. The AIs and the player do something different every time, so two runs
+compare only roughly.
+
+| Run | Slow frames | Their total time | Longest |
+|---|---|---|---|
+| Baseline | 50 | 1.5 s | 60 ms |
+| `MESA_KK_ZERO_MEMORY=0` | 80 | 2.6 s | 62 ms |
+| `mesa_glthread=false` | 78 | 2.3 s | 59 ms |
+| `SPRING_MAC_FRAMEBUFFER_ONLY=1` | 65 | 2.1 s | 63 ms |
+
+A slow frame is one that took 20 ms or longer. The count runs from the start
+of the game to 20:00 of game time.
+
+Each switch moved the count up by 15 to 30, and each changes a different part
+of the stack. That is more likely the spread between games than a loss from
+every one of them, so none of these figures shows a gain or a loss on its own. An earlier baseline is left out. It
+had 123 slow frames, and its memory footprint climbed to 52 GB, which no later
+run repeated.
+
+An exact comparison needs the same replay for every run. That has not been
+done yet.
 
 ### The Driver's Threads Have No Quality of Service Class
 
@@ -425,7 +468,7 @@ hold every performance core. On a Mac with many performance cores it may not
 show at all. The periodic hitches reported on an M1 (issue #4) could be this.
 That is a guess until it is measured.
 
-### glthread Has Never Been Compared With glthread Off
+### glthread on a Mac With a Base Chip
 
 glthread is on by default for Zink. Mesa turns it off when a machine has
 fewer than five big cores, but it only counts big cores on Linux. On macOS the
@@ -442,6 +485,14 @@ The test is a change of environment only. Run the same replay with
 `mesa_glthread=false` set and without it, on a Mac with four performance cores
 and on one with many. If off is faster on the small Macs, the launcher can set
 it for them.
+
+The Mac with many cores is done. On the M3 Ultra on 2026-11-18, the game with
+glthread off had a slow-frame count inside the spread between runs (see
+[The Test Runs of November 2026](#the-test-runs-of-november-2026)). Off is no
+improvement there, so glthread stays on.
+
+That says nothing about a Mac with four performance cores, which is where the
+doubt is. That run is still to do.
 
 ### Swap Time That No Timer Accounts For
 
@@ -480,6 +531,44 @@ The risk is uneven pacing if the two depths alternate.
 A diagnostics build can test a depth of one directly with
 `SPRING_MAC_PRESENT_LAG=1`. Count the fence waits and watch the frame times.
 
+That was done on the M3 Ultra on 2026-11-18 and 2026-11-19, with one full game
+at each depth (35 and 45 minutes of game time) and `SPRING_TIME_PRESENT=1`.
+
+| | Depth 2 | Depth 1 |
+|---|---|---|
+| Frames presented | 258,240 | 305,100 |
+| Fence waits | 14,222 (6%) | 160,202 (53%) |
+| Average time to pack and present | 4.04 ms | 4.06 ms |
+| Slow frames, 5:00 to 20:00 | 66 | 49 |
+| Longest frame, whole game | 1,550 ms | 74 ms |
+
+At a depth of one the engine waited on the fence in about half of all frames,
+about ten times as often as at two. The waits were short. The average present cost
+did not move, and no frame in the whole game took longer than 74 ms.
+
+The player felt no difference between the two depths. This Mac presented
+about 110 to 120 frames a second in these games, so one step of depth is less
+than 10 ms here.
+
+So a depth of one works on this Mac and costs nothing that shows, and it gains
+nothing the player can feel. The default stays at two. The fence count is the
+warning. At one, the margin the ring gives is used up on every second frame,
+and a slower GPU would turn those short waits into long ones. The test that
+matters is the same pair on a Mac with a base chip, where the latency is
+larger and so are the waits.
+
+The depth 2 game had 13 frames over 100 ms between 5:00 and 20:00. All of them
+were fence waits, and the longest was 1.55 s. This is not a property of the
+depth: the four games in
+[The Test Runs of November 2026](#the-test-runs-of-november-2026) were also at
+depth 2 and had no frame over 63 ms to 20:00. It was the first run of a newly
+built app. The cause is not established.
+
+A report on issue #4 shows one way a wait like this can happen. On the first
+run after a build, a process sample caught the main thread waiting on a fence
+while the driver's thread compiled a Metal shader for the first time. Whether
+that is what happened here is not known.
+
 ### The Cost of Clearing Driver Memory
 
 `MESA_KK_ZERO_MEMORY=1` (see [The Driver](#the-driver)) clears every
@@ -493,17 +582,17 @@ The test is load time and memory footprint with the variable at 0 and at 1,
 on the Mac with the least memory. If the difference shows, the clear could be
 kept for image memory only, which is the case the patch exists for.
 
-### Whether Game Mode Turns On
+A first run with the variable at 0 was made on the M3 Ultra on 2026-11-18. The
+game drew correctly with the clear off. The footprint was 6.7 GB ten seconds
+after launch and 12 GB at the end, the same as the baseline. Slow frames were
+inside the spread between runs (see
+[The Test Runs of November 2026](#the-test-runs-of-november-2026)).
 
-macOS has a Game Mode that gives a full-screen game priority on the CPU and
-the GPU and holds background work back. The app's `Info.plist` declares a
-games category, which is how macOS recognises a game. But the engine does not
-run as the app's own process. The launcher starts it as a child, so that the
-lobby can come back after an engine error. Nobody has checked that Game Mode
-still turns on for it.
+Load time cannot be read from these runs. Loading the same game took between
+36 and 131 seconds across them, with nothing changed.
 
-The check is at the screen. Start a game in full screen and look for the Game
-Mode item in the menu bar.
+This Mac has far more memory than the game uses, so the run does not answer
+the question. The test on a Mac with 8 GB is still to do.
 
 ### The Metal Layer Allows Reads of Its Drawables
 
@@ -519,11 +608,30 @@ The change is in the engine behind a test switch, off by default.
 path draw with a render pass too. The engine logs
 `[MetalPresent] framebufferOnly=YES` once when it is on.
 
-The gain is probably small, and it is not measured. Compare the same run with
-the switch on and off, windowed and in full screen. Apple's Metal performance
-overlay (`MTL_HUD_ENABLED=1`) shows whether frames go straight to the display
-or through the compositor, which is where a difference would come from. If
-it helps, on becomes the default and the switch goes.
+The gain was expected to be small. Apple's Metal performance overlay
+(`MTL_HUD_ENABLED=1`) shows whether frames go straight to the display or
+through the compositor, which is where a difference would come from.
+
+Tested on the M3 Ultra on 2026-11-19:
+
+- The staging path draws correctly with the switch on and with it off.
+- In full screen at 3840x1080 the overlay reports direct presentation with
+  the switch off and with it on. So `NO` does not send full-screen frames
+  through the compositor, and that gain is not there to be had.
+- The overlay's GPU time read 5.9 ms with the switch off and 3.2 ms with it
+  on. Each is a single reading from a different game, so they prove nothing
+  yet.
+- Windowed, the slow-frame count with the switch on was inside the spread
+  between runs (see
+  [The Test Runs of November 2026](#the-test-runs-of-november-2026)).
+
+The overlay has to be read by eye. A screenshot makes macOS composite the
+frame, so a screenshot always shows composited. The mode of a windowed game
+was only seen in screenshots, so it is not known.
+
+No gain is shown, so the switch stays off and stays in the engine. What is
+left is the GPU time. Measure it over the same replay in full screen with the
+switch on and off. If it helps, on becomes the default and the switch goes.
 
 ### A Present With No Readback
 
