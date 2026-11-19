@@ -420,7 +420,7 @@ found and what is left. The other two have not been measured.
 ### The Test Runs of November 2026
 
 The tests were live games on an M3 Ultra (macOS 27.2, engine 2026.09.03, Mesa
-26.3.0), windowed, with the hitch log at 20 ms. Each was the same 3v3 skirmish
+26.3.0), in a 1600x900 window, with the hitch log at 20 ms. Each was the same 3v3 skirmish
 on All That Glitters, with the same AIs and settings. They were games, not a
 replay. The AIs and the player do something different every time, so two runs
 compare only roughly.
@@ -443,6 +443,17 @@ run repeated.
 
 An exact comparison needs the same replay for every run. That has not been
 done yet.
+
+From 2026-11-19 the games are set up differently, so later figures do not
+compare with the table above. The map is Eye Of Horus 1.7.1, which is land
+only. The window is maximised at 3840x1080, with `MacRenderScale = 0.75` and
+`MacCrispInterface = 1`, so the world is drawn at 2880x810 and the interface
+at full size.
+
+The first game on that setup is the new baseline. To 20:00 it had 82 slow
+frames with a total time of 2.8 s. The longest was 246 ms. Only 2 frames
+went over 100 ms, both in the first two seconds of the game. The footprint
+peaked at 11 GB.
 
 ### The Driver's Threads Have No Quality of Service Class
 
