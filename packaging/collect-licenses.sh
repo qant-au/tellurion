@@ -7,7 +7,7 @@
 set -euo pipefail
 
 DEST=${1:?dest dir}
-BAR="$(cd "$(dirname "$0")/.." && pwd)"   # always this checkout: an inherited $BAR is ignored
+BAR="$(cd "$(dirname "$0")/.." && pwd -P)"   # always this checkout: an inherited $BAR is ignored
 # Engine source: what the caller packaged (release-build.sh passes ENGINE_SRC),
 # else the same derivation release-build.sh uses. This was hardcoded to
 # $BAR/engine-2025.06.24, a tree that no longer exists, so a clean checkout

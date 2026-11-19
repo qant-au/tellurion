@@ -6,7 +6,7 @@
 #
 # Usage: scripts/preflight.sh
 set -uo pipefail
-BAR="$(cd "$(dirname "$0")/.." && pwd)"   # always this checkout: an inherited $BAR is ignored
+BAR="$(cd "$(dirname "$0")/.." && pwd -P)"   # always this checkout: an inherited $BAR is ignored
 BLOCK=0; ok(){ echo "  ok    $*"; }; warn(){ echo "  warn  $*"; }; bad(){ echo "  FAIL  $*"; BLOCK=1; }
 
 echo "toolchain:"

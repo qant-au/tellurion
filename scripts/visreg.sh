@@ -32,7 +32,7 @@
 #   python3 -m pip install -r scripts/visreg/requirements.txt
 # The comparison has a self-test: python3 scripts/visreg/selftest.py
 set -uo pipefail
-BAR="$(cd "$(dirname "$0")/.." && pwd)"   # always this checkout: an inherited $BAR is ignored
+BAR="$(cd "$(dirname "$0")/.." && pwd -P)"   # always this checkout: an inherited $BAR is ignored
 # The engine comes from a BUILT APP BUNDLE (default: the last 'make app'),
 # with exactly the driver environment the launcher uses. The build-engine/
 # binary cannot load the bundled Vulkan loader (@rpath only resolves in the

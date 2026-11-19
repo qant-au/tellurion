@@ -32,7 +32,7 @@ export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-26.0}"
 # Swift helper gets the target explicitly.
 SWIFT_TARGET="arm64-apple-macos$MACOSX_DEPLOYMENT_TARGET"
 
-BAR="$(cd "$(dirname "$0")/.." && pwd)"   # always this checkout: an inherited $BAR is ignored
+BAR="$(cd "$(dirname "$0")/.." && pwd -P)"   # always this checkout: an inherited $BAR is ignored
 case "$BAR" in *" "*) echo "FATAL: the checkout path contains a space, which the build flags and loops do not support: $BAR" >&2; exit 1;; esac
 PKG="$BAR/packaging"
 # The shipped pair lives in ONE place, shared with scripts/visreg.sh so the

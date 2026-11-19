@@ -18,7 +18,7 @@
 # Usage: gen-libm-ref.sh [-j N]
 set -euo pipefail
 
-BAR="$(cd "$(dirname "$0")/.." && pwd)"   # always this checkout: an inherited $BAR is ignored
+BAR="$(cd "$(dirname "$0")/.." && pwd -P)"   # always this checkout: an inherited $BAR is ignored
 OUT="$BAR/testkit/libm-refs/double-fn-vm26.txt"
 JOBS=("$@")
 

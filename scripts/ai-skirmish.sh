@@ -19,7 +19,7 @@
 # other scripts was recorded with, so the same content serves both.
 # Prints AI_SKIRMISH_OK, or AI_SKIRMISH_FAIL <reason> and exit 1.
 set -uo pipefail
-BAR="$(cd "$(dirname "$0")/.." && pwd)"   # always this checkout: an inherited $BAR is ignored
+BAR="$(cd "$(dirname "$0")/.." && pwd -P)"   # always this checkout: an inherited $BAR is ignored
 AI=BARb; AIVER=stable; SECS=90; MIN_FRAMES=1800
 GAME="Beyond All Reason test-31836-b250a16"; MAP="Glacial Gap v1.1"
 ENGINE="${ENGINE_BUILD:-$BAR/build-engine}/spring-headless"
