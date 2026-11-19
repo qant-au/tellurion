@@ -29,7 +29,7 @@ virtual machine.
 - **No release has been published yet.** There is nothing to download: the
   way to run it today is to [build it](#building). Builds are ad-hoc signed
   and run on the Mac that built them.
-- **Online play goes to the Tellurion test server**, never to BAR's servers.
+- **Online play goes to the Tellurion test server**, not to BAR's servers.
   No request to connect to BAR's servers has been made for this repository
   yet. Accounts are given out on request. Skirmish against AI, replays and
   local-network games work without one. See [Online Play](#online-play).
@@ -114,25 +114,41 @@ all configuration keys and environment variables are in
 ## Online Play
 
 The lobby connects to the Tellurion test server, `tlr.qant.au:8200`, and
-never to BAR's community servers. It is a small server run by this port's
+not to BAR's community servers. It is a small server run by this port's
 maintainer for testing the Mac build against Linux game hosts on the same
 engine. It may be reset or switched off at any time.
 
-- **Accounts:** there is no sign-up in the game. Open an issue in this
-  repository to ask for an account or a new password, and never post a
-  password or an email address in it. The lobby's own account and password
-  links go to BAR's website and do not work for this server.
+- **Accounts:** the server refuses registration from inside the game. Open an
+  issue in this repository to ask for an account or a new password, and never
+  post a password or an email address in it. The lobby's own account and
+  password links go to BAR's website and do not work for this server.
+- **Not encrypted:** the connection to the server is plain text, as the lobby
+  protocol is on that port. The password you are given is for this server
+  only.
 - **Hosting:** the server runs autohosts. Players join a battle room or set
   one up with the usual lobby commands.
 
-`ONLINE=0 make app` builds with online play off: the lobby then resolves to
-an unreachable loopback address. `LOBBY=host:port make app` points the lobby
-at another Tellurion server, for example a LAN address while testing.
-`ONLINE=1 make app` points it at BAR's own lobby. That is a deliberate local
-opt-in for testing only: no request to connect to BAR's community servers has
-been made for this repository, so never distribute such a build. A Developer
-ID signed build refuses both `ONLINE=1` and a non-default `LOBBY`. LAN and
-local play are the same in every mode.
+The test server is a Mac-only setting, not a change to BAR's lobby. The build
+puts one file in the app, `Contents/Resources/test-lobby.conf` (`host`, `port`,
+`name`). When it is there, the launcher does three things on every start: it
+writes that address into the lobby's configuration, it limits the lobby's own
+network connections to that server and this Mac (the engine's
+`TCPAllowConnect` setting), and it drops a lobby address saved by an earlier
+run. The lobby's code also names BAR's lobby server, in its analytics and in
+the server list under Settings, and the limit is what keeps those from
+connecting. When the file is not there, the app uses BAR's standard settings
+and BAR's own lobby, and the next start removes what the test setting wrote.
+
+`make app ONLINE=0` builds with online play off: the lobby then resolves to
+an unreachable loopback address. `make app LOBBY=host:port` names another test
+server, for example a LAN address while testing; a BAR server is refused there.
+`make app ONLINE=1` builds without the setting, so with BAR's standard settings
+and BAR's own lobby. That is a deliberate local opt-in for testing only: no
+request to connect to BAR's community servers has been made for this
+repository, so never distribute such a build. A Developer ID signed build
+refuses both `ONLINE=1` and a non-default `LOBBY`. `ONLINE` and `LOBBY` count
+only when typed on the `make` command line, not when left in the environment.
+LAN and local play are the same in every mode.
 
 ## What The App Contacts
 
@@ -149,9 +165,11 @@ After consent, the app downloads game content from BAR's content network. The
 lobby then downloads maps, games and its own resources from the same network.
 Signing in to online play connects the lobby to the Tellurion test server
 (`tlr.qant.au`, TCP 8200), and a joined game connects to that server's game
-hosts (ports 53200 to 53220, TCP and UDP). The lobby's log upload, which goes
-to BAR's log server, stays off: the app answers with where the logs are
-instead.
+hosts (UDP, ports from 53200). With the test server set, the lobby cannot open
+a connection to any other server, BAR's lobby server included; content still
+comes from BAR's content network and GitHub as above. The lobby's log upload,
+which goes to BAR's log server, stays off: the app answers with where the logs
+are instead.
 
 ## Known Limitations
 
