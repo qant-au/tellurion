@@ -275,7 +275,7 @@ HELPER="$HERE/progress-window"
 # with consent, which was the old skip-the-disclaimer bug). Bump a *_VERSION
 # to re-show that dialog once.
 CONSENT_VERSION="2"
-NOTICE_VERSION="2"
+NOTICE_VERSION="3"   # 3: the Tellurion test server notice (tlr-067)
 CONSENT_ACK="$WRITEDIR/.consent-ack"
 NOTICE_ACK="$WRITEDIR/.notice-ack"
 MESSAGE_SEEN="$WRITEDIR/.message-seen"
@@ -374,6 +374,7 @@ if [ "${BAR_SKIP_CONTENT_CHECK:-0}" != "1" ]; then
     fi
     if [ -x "$HERE/consent-dialog" ]; then
       # 2) ONLINE PLAY IS DISABLED notice — LOCAL, shown once per NOTICE_VERSION.
+      #    A build has at most one of the two markers (release-build.sh).
       if [ -f "$RES/.online-play-disabled" ] && \
          [ "$(cat "$NOTICE_ACK" 2>/dev/null)" != "$NOTICE_VERSION" ]; then
         "$HERE/consent-dialog" --notice "ONLINE PLAY IS DISABLED in this build. No request to connect to Beyond All Reason's community servers has been made for it yet.
@@ -381,6 +382,15 @@ if [ "${BAR_SKIP_CONTENT_CHECK:-0}" != "1" ]; then
 The game opens on a sign-in screen first. Press Cancel to reach everything that works offline: skirmish against AI, replays, and local-network (LAN) games.
 
 If you do try to sign in or open an online menu, it will fail to reach the server. There is no in-game message explaining why, because online play is blocked outside the game, not inside it." || true
+        echo "$NOTICE_VERSION" > "$NOTICE_ACK"
+      # 2b) the Tellurion test server notice (tlr-067): same acknowledgement.
+      elif [ -f "$RES/.online-play-tellurion" ] && \
+         [ "$(cat "$NOTICE_ACK" 2>/dev/null)" != "$NOTICE_VERSION" ]; then
+        "$HERE/consent-dialog" --notice "ONLINE PLAY USES THE TELLURION TEST SERVER, not Beyond All Reason's community servers. It is a small server for testing this Mac port, and it can be reset or switched off at any time.
+
+Sign in with an account from the server's owner: there is no sign-up in the game. To ask for an account or a new password, open an issue at https://github.com/qant-au/tellurion/issues. Never post a password or an email address there. The lobby's own account and password links go to Beyond All Reason's website, and they do not work for this server.
+
+Press Cancel on the sign-in screen to play offline: skirmish against AI, replays, and local-network (LAN) games." || true
         echo "$NOTICE_VERSION" > "$NOTICE_ACK"
       fi
       # 3) DISCLAIMER / consent — LOCAL and hardcoded (never network-gated).
@@ -662,7 +672,7 @@ start_bridge() {
   ENGINE_VERSION="$(/usr/libexec/PlistBuddy -c "Print :EngineVersion" "$CONTENTS/Info.plist" 2>/dev/null || true)"
   "$HERE/sl-bridge" --writedir "$WRITEDIR" --prd "$HERE/pr-downloader" \
     --engine "$HERE/spring" --engine-version "$ENGINE_VERSION" \
-    --config "$RES/launcher_extras.json" --online "$( [ -f "$RES/.online-play-disabled" ] && echo 0 || echo 1 )" \
+    --config "$RES/launcher_extras.json" --online "$( [ -f "$RES/.online-play-disabled" ] || [ -f "$RES/.online-play-tellurion" ] && echo 0 || echo 1 )" \
     --parent-pid "$$" --log "$WRITEDIR/sl-bridge.log" >/dev/null 2>&1 &
   BRIDGE_PID=$!
   # give it a moment to write sl-connection.json before the lobby looks for it

@@ -13,9 +13,10 @@ Three decisions are open and block a first release:
 
 - **Signing identity.** An Apple Developer ID Application certificate and
   notary credentials for whoever publishes.
-- **Online play.** It is off in every build and a Developer ID build refuses
-  to switch it on. It stays off until BAR's maintainers have agreed to this
-  build connecting to their servers.
+- **Online play.** Every build connects to the Tellurion test server
+  (`tlr.qant.au:8200`), never to BAR's. A Developer ID build refuses BAR's
+  lobby (`--enable-online`) and any other lobby address. BAR's lobby stays out
+  until BAR's maintainers have agreed to this build connecting to their servers.
 - **Where releases live.** The app's update feed, download links and the
   "new version needed" page all point at this repository's GitHub Releases.
 
@@ -88,8 +89,9 @@ Its game version and map must be in the app's data folder.
    hardened runtime, runs visual regression and the driver smoke test on the
    signed bundle, notarises and staples the zip and the disk image, and
    writes the update feed. For a Developer ID build none of the tests can be
-   skipped, a driver without a provenance stamp is refused, and online play,
-   pinned content tags and a non-default message or update address are
+   skipped, a driver without a provenance stamp is refused, and BAR's lobby,
+   a non-default Tellurion lobby address, pinned content tags and a
+   non-default message or update address are
    refused unless `--allow-release-overrides` is given. The summary at the
    end prints the values in effect: read it.
 6. **Build the engine-only bundle** if it is being published:

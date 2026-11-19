@@ -20,7 +20,8 @@
 # Release settings (--port-version, --notary-key ..., --messages-config,
 # --update-feed, --allow-release-overrides): see the option parser below and
 # docs/RELEASING.md.
-#                              [--enable-online | --disable-online]
+#                              [--online-tellurion | --disable-online | --enable-online]
+#                              [--lobby-server <host:port>]
 # Without --identity the bundle is ad-hoc signed (local testing only; will
 # not pass Gatekeeper on other machines). Notarization runs only when both
 # --identity and --notary-profile are given.
@@ -88,8 +89,9 @@ PORTVER="$(cat "$PKG/PORT_VERSION" 2>/dev/null | tr -d '[:space:]')"
 #            and dylib closure, no game configuration or branding. For any
 #            Spring/Recoil game community, or for building other helpers on.
 PROFILE=bar
-# Online play (bar profile): **DISABLED by default, and that is a standing rule,
-# not a per-release choice** (user decision, 2026-08-08). Every release so far has
+# Online play (bar profile): **BAR's lobby is NEVER the default, and that is a
+# standing rule, not a per-release choice** (user decision, 2026-08-08; from
+# tlr-067 the default is the Tellurion test server, below). Every release so far has
 # been respun with --disable-online before shipping — v0.11 and v0.12 both were —
 # so the default was a trap: it made the safe outcome depend on someone
 # remembering a flag, and forgetting it publishes a build that reaches BAR's real
@@ -102,7 +104,19 @@ PROFILE=bar
 # --enable-online (or BAR_ONLINE=1) is a DELIBERATE opt-in and must not be used
 # for a public artifact without an explicit decision to seek approval from BAR's
 # maintainers first; see "Online play" in README.md.
-ENABLE_ONLINE="${BAR_ONLINE:-0}"
+#
+# Three modes (tlr-067):
+#   tellurion  the DEFAULT: the lobby connects to the Tellurion test server
+#              (TELLURION_LOBBY, tlr.qant.au:8200; a Teiserver fork run by the
+#              port's maintainer, accounts on request). Never a BAR server.
+#   off        --disable-online: the unreachable loopback endpoint below.
+#   bar        --enable-online / BAR_ONLINE=1: BAR's own lobby, unchanged.
+# --lobby-server <host:port> points tellurion mode elsewhere (a LAN address
+# while testing); a Developer ID build refuses a non-default one.
+DEFAULT_TELLURION_LOBBY="tlr.qant.au:8200"
+TELLURION_LOBBY="${TELLURION_LOBBY:-$DEFAULT_TELLURION_LOBBY}"
+ONLINE_MODE=tellurion
+[ "${BAR_ONLINE:-0}" = "1" ] && ONLINE_MODE=bar
 # Message config source (bar profile): where the shipped launcher fetches
 # messages.json each launch. Default = the port's GitHub repo. Override with
 # --messages-config <https-url> or --messages-local <path> (a local file,
@@ -154,8 +168,10 @@ while [ $# -gt 0 ]; do
     --version) VERSION=$2; VERSION_EXPLICIT=1; shift 2;;
     --port-version) PORTVER=$2; shift 2;;
     --profile) PROFILE=$2; shift 2;;
-    --enable-online) ENABLE_ONLINE=1; shift;;   # DELIBERATE opt-in; never for a public artifact
-    --disable-online) ENABLE_ONLINE=0; shift;;  # now the default; kept for explicitness
+    --enable-online) ONLINE_MODE=bar; shift;;   # BAR's lobby: DELIBERATE opt-in; never for a public artifact
+    --disable-online) ONLINE_MODE=off; shift;;
+    --online-tellurion) ONLINE_MODE=tellurion; shift;;   # the default; kept for explicitness
+    --lobby-server) TELLURION_LOBBY=$2; shift 2;;
     --messages-config) MESSAGES_CONFIG=$2; shift 2;;
     --update-feed) UPDATE_FEED=$2; shift 2;;
     --messages-local)
@@ -186,7 +202,9 @@ fi
 # --allow-release-overrides is the deliberate way through.
 if [ "$IDENTITY" != "-" ] && [ "$PROFILE" = "bar" ] && [ "$ALLOW_RELEASE_OVERRIDES" != "1" ]; then
   OVERRIDES=()
-  [ "$ENABLE_ONLINE" = "1" ] && OVERRIDES+=("online play is enabled (--enable-online or BAR_ONLINE=1)")
+  [ "$ONLINE_MODE" = "bar" ] && OVERRIDES+=("online play goes to BAR's lobby (--enable-online or BAR_ONLINE=1)")
+  [ "$ONLINE_MODE" = "tellurion" ] && [ "$TELLURION_LOBBY" != "$DEFAULT_TELLURION_LOBBY" ] \
+    && OVERRIDES+=("lobby server is not the default: $TELLURION_LOBBY")
   [ -n "${BAR_CONTENT_TAGS:-}" ] && OVERRIDES+=("BAR_CONTENT_TAGS pins non-standard content: $BAR_CONTENT_TAGS")
   [ "$MESSAGES_CONFIG" != "$DEFAULT_MESSAGES_CONFIG" ] && OVERRIDES+=("message config is not the default: $MESSAGES_CONFIG")
   [ "$UPDATE_FEED" != "$DEFAULT_UPDATE_FEED" ] && OVERRIDES+=("update feed is not the default: $UPDATE_FEED")
@@ -440,7 +458,31 @@ if [ "$PROFILE" = "bar" ]; then
     echo "!!  Do NOT distribute it. Do NOT use it for online play."
     echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
   fi
-  if [ "$ENABLE_ONLINE" != "1" ]; then
+  # set_lobby <address> <port> <serverName>: rewrite the staged chobby_config.json
+  set_lobby() {
+    python3 -c 'import json, sys
+p, addr, port, name = sys.argv[1:5]
+cfg = json.load(open(p))
+srv = cfg.setdefault("server", {})
+srv["address"], srv["port"] = addr, int(port)
+if name:
+    srv["serverName"] = name
+json.dump(cfg, open(p, "w"), indent=2)' "$RESOURCES/chobby_config.json" "$1" "$2" "${3:-}"
+  }
+  rm -f "$RESOURCES/.online-play-disabled" "$RESOURCES/.online-play-tellurion"
+  if [ "$ONLINE_MODE" = "tellurion" ]; then
+    # The Tellurion test server (tlr-067): plain spring protocol on 8200, as
+    # BAR's lobby speaks it. The marker makes the launcher show the notice about
+    # how to get an account, and keeps sl-bridge's log upload (BAR's log server)
+    # off: nothing in this mode reaches a BAR server.
+    LOBBY_HOST="${TELLURION_LOBBY%:*}"; LOBBY_PORT="${TELLURION_LOBBY##*:}"
+    case "$LOBBY_PORT" in ''|*[!0-9]*) echo "FATAL: --lobby-server wants host:port, got $TELLURION_LOBBY"; exit 2;; esac
+    [ -n "$LOBBY_HOST" ] && [ "$LOBBY_HOST" != "$TELLURION_LOBBY" ] \
+      || { echo "FATAL: --lobby-server wants host:port, got $TELLURION_LOBBY"; exit 2; }
+    set_lobby "$LOBBY_HOST" "$LOBBY_PORT" "Tellurion"
+    touch "$RESOURCES/.online-play-tellurion"
+    echo "online play: Tellurion test server $LOBBY_HOST:$LOBBY_PORT$([ "$TELLURION_LOBBY" = "$DEFAULT_TELLURION_LOBBY" ] && echo " (the default)")"
+  elif [ "$ONLINE_MODE" = "off" ]; then
     # Neuter the lobby-server endpoint so online play cannot connect:
     #   host: online-play-disabled.localhost — .localhost is a reserved TLD
     #     (RFC 6761) that resolvers MUST map to loopback, so a connection can
@@ -450,18 +492,11 @@ if [ "$PROFILE" = "bar" ]; then
     #     on, so the loopback connect is refused INSTANTLY (no hang, no chance
     #     of hitting a local dev server that might sit on a common port).
     # The marker file makes the launcher show the "online play disabled" notice.
-    python3 - "$RESOURCES/chobby_config.json" <<'NEUTER'
-import json, sys
-p = sys.argv[1]
-cfg = json.load(open(p))
-cfg.setdefault("server", {})["address"] = "online-play-disabled.localhost"
-cfg["server"]["port"] = 1
-json.dump(cfg, open(p, "w"), indent=2)
-NEUTER
+    set_lobby "online-play-disabled.localhost" 1
     touch "$RESOURCES/.online-play-disabled"
-    echo "online play: DISABLED (the default)"
+    echo "online play: DISABLED (--disable-online)"
   else
-    echo "online play: ENABLED (--enable-online / BAR_ONLINE=1)"
+    echo "online play: BAR's lobby (--enable-online / BAR_ONLINE=1)"
   fi
   # Bake the message-config source for the shipped launcher (launcher.sh reads
   # this staged file; BAR_MESSAGE_CONFIG_URL still overrides at runtime).
@@ -1032,7 +1067,11 @@ echo "bundles:   $ZIP"
 echo "           $DMG"
 echo "signing:   $([ "$IDENTITY" = "-" ] && echo "ad-hoc (local only)" || echo "Developer ID$([ "${#NOTARY_AUTH[@]}" -gt 0 ] && echo " + notarized")")"
 if [ "$PROFILE" = "bar" ]; then
-  echo "online:    $([ "$ENABLE_ONLINE" = "1" ] && echo "ENABLED" || echo "disabled")"
+  case "$ONLINE_MODE" in
+    tellurion) echo "online:    Tellurion test server $TELLURION_LOBBY";;
+    bar)       echo "online:    BAR's lobby (ENABLED)";;
+    *)         echo "online:    disabled";;
+  esac
   echo "content:   ${BAR_CONTENT_TAGS:-standard tags}"
   echo "messages:  $MESSAGES_CONFIG"
   echo "updates:   $UPDATE_FEED"
