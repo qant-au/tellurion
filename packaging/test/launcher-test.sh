@@ -3,8 +3,8 @@
 # Stages a fake .app whose helpers (message-check, consent-dialog, spring, …)
 # are recording stubs, then drives the REAL launcher through every path:
 # versioned consent/notice acks, message-check kill-switch, quit handling,
-# assume-consent + skip escapes, and the online-disabled marker. No GUI, no
-# network, no engine. This is the coverage the original "disclaimer skipped
+# assume-consent + skip escapes, the online-disabled marker and the test
+# server setting (test-lobby.conf). No GUI, no network, no engine. This is the coverage the original "disclaimer skipped
 # because content already existed" bug needed.
 set -uo pipefail
 PKG="$(cd "$(dirname "$0")/.." && pwd)"
@@ -60,7 +60,8 @@ case "$*" in *--print-server*) echo "repos-cdn.beyondallreason.dev"; exit 0;; es
 printf '@S go\n@P 100\n@DONE\n'; printf 'CONTENT_OK\n' >&2; exit ${STUB_DL_EXIT:-0}
 S
 chmod +x "$MACOS/message-check" "$MACOS/consent-dialog" "$MACOS/spring" "$MACOS/error-dialog" "$RES/download-content.sh"
-echo '{}' > "$RES/chobby_config.json"
+# BAR's standard lobby config, as release-build.sh stages it
+echo '{"server":{"address":"server4.beyondallreason.info","port":8200,"protocol":"spring","serverName":"BAR"},"game":"byar"}' > "$RES/chobby_config.json"
 # the content set this "build" installs; the launcher records its digest in the
 # sentinel, so a Skip is only offered when THIS set is already on disk
 printf 'byar:test\nbyar-chobby:test\n' > "$RES/content_tags"
@@ -141,16 +142,91 @@ online_off; WD5="$ROOT/w5"; run "$WD5"
   && ok "no marker -> no online notice; disclaimer still shown" || bad "no-marker" "$(calls)"
 online_on
 
-echo "== Tellurion test server marker: its own notice, same acknowledgement (tlr-067) =="
-online_off; : > "$RES/.online-play-tellurion"; WDT="$ROOT/wt"; run "$WDT"
+echo "== test server setting: its own notice, same acknowledgement (tlr-067) =="
+test_lobby() { printf 'host=%s\nport=%s\nname=%s\n' "$1" "$2" "${3:-Tellurion}" > "$RES/test-lobby.conf"; }
+online_off; test_lobby lobby.example.test 8200; WDT="$ROOT/wt"; run "$WDT"
 { has consent-notice-tellurion && has consent-server && has spring-launched; } \
-  && ok "tellurion marker -> the test-server notice" || bad "tellurion notice" "$(calls)"
+  && ok "test server setting -> the test-server notice" || bad "tellurion notice" "$(calls)"
 [ "$(cat "$WDT/.notice-ack" 2>/dev/null)" = "3" ] && ok "tellurion notice acknowledged (v3)" || bad "tellurion notice-ack"
 echo 2 > "$WDT/.notice-ack"; run "$WDT"
 has consent-notice-tellurion && ok "an acknowledgement of the disabled notice (v2) still shows the test-server notice once" || bad "v2 ack hid the tellurion notice" "$(calls)"
 run "$WDT"
 ! has consent-notice && ok "tellurion notice quiet once acknowledged" || bad "tellurion re-ask" "$(calls)"
-rm -f "$RES/.online-play-tellurion"; online_on
+rm -f "$RES/test-lobby.conf"; online_on
+
+echo "== test server setting: lobby config, socket allow-list, saved address (tlr-067) =="
+# sl-bridge stub for this section only: records the log-upload switch it was given
+cat > "$MACOS/sl-bridge" <<'S'
+#!/bin/bash
+WD=""; ON=""
+while [ $# -gt 0 ]; do case "$1" in --writedir) WD=$2; shift 2;; --online) ON=$2; shift 2;; *) shift;; esac; done
+echo "sl-bridge-online-$ON" >> "$CALLS"; : > "$WD/sl-connection.json"; exit 0
+S
+chmod +x "$MACOS/sl-bridge"
+jget() { plutil -extract "$2" raw -o - "$1" 2>/dev/null; }          # one value out of a JSON file
+allow() { grep -c '^TCPAllowConnect' "$1/springsettings.cfg"; }      # how many allow-list lines
+# saved_lobby <writedir> <address> <port>: the lobby's settings file as it saves it
+saved_lobby() {
+  mkdir -p "$1/LuaMenu/Config"
+  printf 'return {\n\t["Chobby"] = {\n\t\tautoLogin = true,\n\t\tserverAddress = "%s",\n\t\tserverPort = %s,\n\t\tuserName = "someone",\n\t},\n}\n' \
+    "$2" "$3" > "$1/LuaMenu/Config/IGL_data.lua"
+}
+has_saved() { grep -Eq '^[[:space:]]*server(Address|Port)[[:space:]]*=' "$1/LuaMenu/Config/IGL_data.lua"; }
+STOCK=$(cat "$RES/chobby_config.json")
+
+online_off; test_lobby lobby.example.test 8200
+WDL="$ROOT/wl"; saved_lobby "$WDL" online-play-disabled.localhost 1
+run "$WDL" BAR_ASSUME_CONSENT=1
+{ [ "$(jget "$WDL/chobby_config.json" server.address)" = "lobby.example.test" ] \
+  && [ "$(jget "$WDL/chobby_config.json" server.port)" = "8200" ] \
+  && [ "$(jget "$WDL/chobby_config.json" server.serverName)" = "Tellurion" ] \
+  && [ "$(jget "$WDL/chobby_config.json" server.protocol)" = "spring" ] \
+  && [ "$(jget "$WDL/chobby_config.json" game)" = "byar" ]; } \
+  && ok "setting defined -> the lobby config names the test server, the rest of BAR's config kept" \
+  || bad "test lobby config" "$(cat "$WDL/chobby_config.json" 2>&1)"
+[ "$(cat "$RES/chobby_config.json")" = "$STOCK" ] && ok "the bundle's lobby config stays BAR's standard one" || bad "bundle config changed"
+grep -qx 'TCPAllowConnect = lobby.example.test:8200 127.0.0.1:-1 localhost:-1' "$WDL/springsettings.cfg" \
+  && ok "Lua sockets allowed to the test server and this Mac only" || bad "allow-list" "$(grep TCPAllow "$WDL/springsettings.cfg")"
+{ ! has_saved "$WDL" && grep -q 'autoLogin = true' "$WDL/LuaMenu/Config/IGL_data.lua" \
+  && grep -q 'userName = "someone"' "$WDL/LuaMenu/Config/IGL_data.lua"; } \
+  && ok "saved lobby address dropped, the rest of the lobby's settings kept" || bad "saved address" "$(cat "$WDL/LuaMenu/Config/IGL_data.lua")"
+has sl-bridge-online-0 && ok "log upload to BAR off with a test server" || bad "sl-bridge online" "$(calls)"
+saved_lobby "$WDL" server4.beyondallreason.info 8200; run "$WDL" BAR_ASSUME_CONSENT=1
+{ [ "$(allow "$WDL")" = "1" ] && ! has_saved "$WDL"; } \
+  && ok "second run: one allow-list line, a saved address dropped again" || bad "test lobby second run" "$(allow "$WDL")"
+
+echo "== setting removed: back to BAR's standard settings =="
+rm -f "$RES/test-lobby.conf"; saved_lobby "$WDL" lobby.example.test 8200
+run "$WDL" BAR_ASSUME_CONSENT=1
+[ "$(cat "$WDL/chobby_config.json")" = "$STOCK" ] && ok "no setting -> BAR's lobby config, untouched" || bad "stock config" "$(cat "$WDL/chobby_config.json")"
+[ "$(allow "$WDL")" = "0" ] && ok "the allow-list the launcher wrote is removed" || bad "allow-list left behind" "$(grep TCPAllow "$WDL/springsettings.cfg")"
+! has_saved "$WDL" && ok "the test server's saved address is dropped once" || bad "saved test address kept"
+has sl-bridge-online-1 && ok "log upload back on under BAR's settings" || bad "sl-bridge online" "$(calls)"
+! has consent-notice && ok "no test-server notice without the setting" || bad "notice without setting" "$(calls)"
+saved_lobby "$WDL" localhost 8200; echo "TCPAllowConnect = *" >> "$WDL/springsettings.cfg"
+run "$WDL" BAR_ASSUME_CONSENT=1
+{ has_saved "$WDL" && [ "$(allow "$WDL")" = "1" ]; } \
+  && ok "BAR's settings: the player's own lobby address and allow-list are left alone" || bad "player choice reset"
+
+echo "== BAR's settings from the start: nothing of the player's is removed =="
+WDB="$ROOT/wb"; mkdir -p "$WDB"; echo "TCPAllowConnect = *" > "$WDB/springsettings.cfg"
+run "$WDB" BAR_ASSUME_CONSENT=1
+{ [ "$(allow "$WDB")" = "1" ] && [ "$(cat "$WDB/chobby_config.json")" = "$STOCK" ]; } \
+  && ok "an allow-list the launcher did not write is kept" || bad "player allow-list removed"
+
+echo "== online play off: log upload stays off =="
+online_on; WDO="$ROOT/wo"; run "$WDO" BAR_ASSUME_CONSENT=1
+{ has sl-bridge-online-0 && [ "$(allow "$WDO")" = "0" ]; } && ok "disabled marker -> --online 0, no allow-list" || bad "off mode" "$(calls)"
+online_off
+
+echo "== a setting that cannot be read stops the launch (never BAR's servers) =="
+for bad_setting in 'host=bad host\nport=8200\n' 'host=lobby.example.test\nport=0\n' 'host=lobby.example.test\n' 'port=8200\n' 'host=a"b\nport=8200\n'; do
+  printf "$bad_setting" > "$RES/test-lobby.conf"
+  WDX="$ROOT/wx"; rm -rf "$WDX"; run "$WDX" BAR_ASSUME_CONSENT=1
+  { has osascript && ! has spring-launched && [ ! -f "$WDX/chobby_config.json" ]; } \
+    && ok "unreadable setting -> dialog, no launch, no lobby config" || bad "unreadable setting: $bad_setting" "$(calls)"
+done
+rm -f "$RES/test-lobby.conf" "$MACOS/sl-bridge"; online_on
 
 echo "== BAR_ASSUME_CONSENT / BAR_SKIP_CONTENT_CHECK escapes =="
 WD6="$ROOT/w6"; run "$WD6" BAR_ASSUME_CONSENT=1
