@@ -23,7 +23,7 @@
 # Usage: scripts/build-static-libs.sh        (STATIC_LIBS_FORCE=1 rebuilds)
 set -euo pipefail
 
-BAR="$(cd "$(dirname "$0")/.." && pwd)"   # always this checkout: an inherited $BAR is ignored
+BAR="$(cd "$(dirname "$0")/.." && pwd -P)"   # always this checkout: an inherited $BAR is ignored
 case "$BAR" in *" "*) echo "FATAL: the checkout path contains a space, which the build flags and loops do not support: $BAR" >&2; exit 1;; esac
 DEPS="$BAR/deps"
 PREFIX="${STATIC_PREFIX:-$DEPS/static}"

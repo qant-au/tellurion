@@ -33,7 +33,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-BAR="$(cd "$(dirname "$0")/.." && pwd)"   # always this checkout: an inherited $BAR is ignored
+BAR="$(cd "$(dirname "$0")/.." && pwd -P)"   # always this checkout: an inherited $BAR is ignored
 case "$BAR" in *" "*) echo "FATAL: the checkout path contains a space, which the build flags and loops do not support: $BAR" >&2; exit 1;; esac
 # Deployment target: see build-mesa-kk.sh. Exported before build-mesa-kk.sh runs so
 # the driver and the engine always agree.

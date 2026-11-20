@@ -22,7 +22,7 @@
 # Everything is checked with explicit artifact tests, not exit codes.
 set -euo pipefail
 
-BAR="$(cd "$(dirname "$0")/.." && pwd)"   # always this checkout: an inherited $BAR is ignored
+BAR="$(cd "$(dirname "$0")/.." && pwd -P)"   # always this checkout: an inherited $BAR is ignored
 case "$BAR" in *" "*) echo "FATAL: the checkout path contains a space, which the build flags and loops do not support: $BAR" >&2; exit 1;; esac
 # Deployment target: the floor the shipped bundle declares (LSMinimumSystemVersion,
 # packaging/release-build.sh). macOS 26.0, the lowest KosmicKrisp supports (it

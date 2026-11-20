@@ -21,7 +21,7 @@
 # testkit/sanitize/known-sites.txt, SANITIZE_REPLAY_FINDINGS (exit 1) otherwise. The
 # full reports stay in logs/local/sanitize-<stamp>/.
 set -uo pipefail
-BAR="$(cd "$(dirname "$0")/.." && pwd)"   # always this checkout: an inherited $BAR is ignored
+BAR="$(cd "$(dirname "$0")/.." && pwd -P)"   # always this checkout: an inherited $BAR is ignored
 case "$BAR" in *" "*) echo "FATAL: the checkout path contains a space: $BAR" >&2; exit 1;; esac
 cd "$BAR"
 DEMO=${1:?usage: sanitize-replay.sh <demo.sdfz> [replay-check.sh options...]}; shift

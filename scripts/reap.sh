@@ -12,7 +12,7 @@
 # Usage: scripts/reap.sh [--dry-run]
 set -uo pipefail
 DRY=0; [ "${1:-}" = "--dry-run" ] && DRY=1
-BAR="$(cd "$(dirname "$0")/.." && pwd)"
+BAR="$(cd "$(dirname "$0")/.." && pwd -P)"
 NAMES=(spring spring-headless spring-dedicated pr-downloader)
 
 ours() { # ours <executable path>

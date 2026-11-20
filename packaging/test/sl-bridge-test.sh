@@ -5,7 +5,7 @@
 # deps/test-demos/duel.sdfz (a public 2026.07.04 BAR duel); skipped if absent.
 # Usage: packaging/test/sl-bridge-test.sh
 set -uo pipefail
-BAR="$(cd "$(dirname "$0")/../.." && pwd)"
+BAR="$(cd "$(dirname "$0")/../.." && pwd -P)"
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/sl-bridge-test.XXXXXX")
 WD2="$WORK/wd2"   # write dir of the second bridge (the StartNewSpring and UploadLog cases)
 trap 'kill $BPID $HOLDER ${DISCORD:-} ${B2PID:-} $(cat "$WD2/engine-starts" 2>/dev/null) 2>/dev/null; rm -rf "$WORK" "${DTMP:-}"' EXIT
