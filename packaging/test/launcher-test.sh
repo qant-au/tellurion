@@ -34,7 +34,6 @@ S
 cat > "$MACOS/consent-dialog" <<'S'
 #!/bin/bash
 case "$*" in
-  *--notice*TELLURION\ TEST\ SERVER*) printf 'consent-notice\nconsent-notice-tellurion\n' >> "$CALLS"; exit 0;;
   *--notice*) echo "consent-notice" >> "$CALLS"; exit 0;;
   *--server*) echo "consent-server" >> "$CALLS"; exit ${STUB_CONSENT_EXIT:-0};;
 esac
@@ -92,7 +91,7 @@ online_on; WD="$ROOT/w1"; run "$WD"
 { has message-check && has consent-notice && has consent-server && has spring-launched; } \
   && ok "message-check + notice + disclaimer + launch" || bad "first run" "$(calls)"
 [ "$(cat "$WD/.consent-ack" 2>/dev/null)" = "2" ] && ok ".consent-ack written (v2)" || bad "consent-ack"
-[ "$(cat "$WD/.notice-ack"  2>/dev/null)" = "3" ] && ok ".notice-ack written (v3)"  || bad "notice-ack"
+[ "$(cat "$WD/.notice-ack"  2>/dev/null)" = "2" ] && ok ".notice-ack written (v2)"  || bad "notice-ack"
 
 echo "== an acknowledgement of the earlier wording (v1) is asked again =="
 WDV1="$ROOT/wv1"; mkdir -p "$WDV1"; echo 1 > "$WDV1/.consent-ack"; echo 1 > "$WDV1/.notice-ack"
@@ -140,17 +139,6 @@ online_off; WD5="$ROOT/w5"; run "$WD5"
 { ! has consent-notice && has consent-server && has spring-launched; } \
   && ok "no marker -> no online notice; disclaimer still shown" || bad "no-marker" "$(calls)"
 online_on
-
-echo "== Tellurion test server marker: its own notice, same acknowledgement (tlr-067) =="
-online_off; : > "$RES/.online-play-tellurion"; WDT="$ROOT/wt"; run "$WDT"
-{ has consent-notice-tellurion && has consent-server && has spring-launched; } \
-  && ok "tellurion marker -> the test-server notice" || bad "tellurion notice" "$(calls)"
-[ "$(cat "$WDT/.notice-ack" 2>/dev/null)" = "3" ] && ok "tellurion notice acknowledged (v3)" || bad "tellurion notice-ack"
-echo 2 > "$WDT/.notice-ack"; run "$WDT"
-has consent-notice-tellurion && ok "an acknowledgement of the disabled notice (v2) still shows the test-server notice once" || bad "v2 ack hid the tellurion notice" "$(calls)"
-run "$WDT"
-! has consent-notice && ok "tellurion notice quiet once acknowledged" || bad "tellurion re-ask" "$(calls)"
-rm -f "$RES/.online-play-tellurion"; online_on
 
 echo "== BAR_ASSUME_CONSENT / BAR_SKIP_CONTENT_CHECK escapes =="
 WD6="$ROOT/w6"; run "$WD6" BAR_ASSUME_CONSENT=1

@@ -58,9 +58,8 @@ Lua as `Engine.versionFull`. The sync version, which demos, saves and the
 network compare, is the bare engine tag.
 
 `packaging/release-build.sh` is what the app targets call; its header lists
-every option. The lobby goes to the Tellurion test server unless `ONLINE=0`
-(off) or `ONLINE=1` (BAR's lobby) is on the `make` command line, and
-`LOBBY=host:port` points it at another Tellurion server (see the README).
+every option. Online play is off unless `ONLINE=1` is on the `make` command
+line (see the README).
 
 The build keeps two copies of the driver: `deps/mesa-native` for
 `make engine` and the test scripts, and `deps/mesa-native-release` for the

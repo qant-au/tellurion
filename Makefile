@@ -29,14 +29,11 @@ IDENTITY ?=
 NOTARY_PROFILE ?=
 VERSION  ?=
 ONLINE   ?=
-LOBBY    ?=
 
 VERSION_ARG := $(if $(VERSION),--version "$(VERSION)",)
-# Always explicit, so an exported BAR_ONLINE cannot decide it. The lobby is the
-# Tellurion test server (tlr-067) unless ONLINE=0 (online off) or ONLINE=1
-# (BAR's own lobby) is given on this command line. LOBBY=host:port points the
-# Tellurion mode at another server, e.g. a LAN address while testing.
-ONLINE_ARG  := $(if $(filter 1,$(ONLINE)),--enable-online,$(if $(filter 0,$(ONLINE)),--disable-online,--online-tellurion $(if $(LOBBY),--lobby-server "$(LOBBY)",)))
+# Always explicit, so an exported BAR_ONLINE cannot decide it: online play is
+# off unless ONLINE=1 is given on this command line.
+ONLINE_ARG  := $(if $(filter 1,$(ONLINE)),--enable-online,--disable-online)
 
 .DEFAULT_GOAL := help
 .PHONY: help app engine-dist certify release engine test clean-artifacts
@@ -51,10 +48,7 @@ help:
 	@echo "                 IDENTITY=\"Developer ID Application: NAME (TEAMID)\" NOTARY_PROFILE=<profile> make release"
 	@echo "  make engine    just the engine binary (no bundle)"
 	@echo "  make clean-artifacts   remove staged bundles/zips/dmgs"
-	@echo "  online play goes to the Tellurion test server (tlr.qant.au:8200) by default"
-	@echo "  LOBBY=host:port make ... another Tellurion server (a Developer ID build refuses it)"
-	@echo "  ONLINE=0 make ...      online play off"
-	@echo "  ONLINE=1 make ...      BAR's own lobby (a Developer ID build refuses it)"
+	@echo "  ONLINE=1 make ...      enable online play (off by default; a Developer ID build refuses it)"
 
 app:
 	packaging/release-build.sh $(VERSION_ARG) $(ONLINE_ARG)
