@@ -120,7 +120,7 @@ check "online-disabled notice" "$WORK/consent-dialog" --notice "ONLINE PLAY IS D
 The game opens on a sign-in screen first. Press Cancel to reach everything that works offline: skirmish against AI, replays, and local-network (LAN) games."
 check "test-server notice" "$WORK/consent-dialog" --notice "ONLINE PLAY USES THE TELLURION TEST SERVER, not Beyond All Reason's community servers. It is a small server for testing this Mac port, and it can be reset or switched off at any time.
 
-Sign in with an account from the server's owner: this server refuses registration from inside the game. To ask for an account or a new password, open an issue at https://github.com/qant-au/tellurion/issues. Never post a password or an email address there. The connection to this server is not encrypted, and the password you are given is for this server only. The lobby's own account and password links go to Beyond All Reason's website, and they do not work for this server.
+Sign in with an account from the server's owner: there is no sign-up in the game. To ask for an account or a new password, open an issue at https://github.com/qant-au/tellurion/issues. Never post a password or an email address there. The lobby's own account and password links go to Beyond All Reason's website, and they do not work for this server.
 
 Press Cancel on the sign-in screen to play offline: skirmish against AI, replays, and local-network (LAN) games."
 

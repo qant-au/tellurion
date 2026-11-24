@@ -21,7 +21,7 @@
 # --update-feed, --allow-release-overrides): see the option parser below and
 # docs/RELEASING.md.
 #                              [--online-tellurion | --disable-online | --enable-online]
-#                              [--lobby-server <host:port>] [--print-config]
+#                              [--lobby-server <host:port>]
 # Without --identity the bundle is ad-hoc signed (local testing only; will
 # not pass Gatekeeper on other machines). Notarization runs only when both
 # --identity and --notary-profile are given.
@@ -106,23 +106,15 @@ PROFILE=bar
 # maintainers first; see "Online play" in README.md.
 #
 # Three modes (tlr-067):
-#   tellurion  the DEFAULT: the build carries a test server setting,
-#              Resources/test-lobby.conf (host, port, name; tlr.qant.au:8200, a
-#              Teiserver fork run by the port's maintainer, accounts on
-#              request). The launcher applies it on each start and narrows the
-#              lobby's sockets to that server (see LOBBY_MODE in launcher.sh).
-#              The staged chobby_config.json stays BAR's standard one.
+#   tellurion  the DEFAULT: the lobby connects to the Tellurion test server
+#              (TELLURION_LOBBY, tlr.qant.au:8200; a Teiserver fork run by the
+#              port's maintainer, accounts on request). Never a BAR server.
 #   off        --disable-online: the unreachable loopback endpoint below.
-#   bar        --enable-online / BAR_ONLINE=1: no setting, so BAR's standard
-#              settings and BAR's own lobby, unchanged.
-# The setting is the only difference between tellurion and bar: a build without
-# test-lobby.conf is a stock BAR client again.
-# --lobby-server <host:port> names another test server (a LAN address while
-# testing); a Developer ID build refuses a non-default one. It is a command-line
-# option only, so an exported variable cannot choose the server.
+#   bar        --enable-online / BAR_ONLINE=1: BAR's own lobby, unchanged.
+# --lobby-server <host:port> points tellurion mode elsewhere (a LAN address
+# while testing); a Developer ID build refuses a non-default one.
 DEFAULT_TELLURION_LOBBY="tlr.qant.au:8200"
-TELLURION_LOBBY="$DEFAULT_TELLURION_LOBBY"
-PRINT_CONFIG=0
+TELLURION_LOBBY="${TELLURION_LOBBY:-$DEFAULT_TELLURION_LOBBY}"
 ONLINE_MODE=tellurion
 [ "${BAR_ONLINE:-0}" = "1" ] && ONLINE_MODE=bar
 # Message config source (bar profile): where the shipped launcher fetches
@@ -180,7 +172,6 @@ while [ $# -gt 0 ]; do
     --disable-online) ONLINE_MODE=off; shift;;
     --online-tellurion) ONLINE_MODE=tellurion; shift;;   # the default; kept for explicitness
     --lobby-server) TELLURION_LOBBY=$2; shift 2;;
-    --print-config) PRINT_CONFIG=1; shift;;   # report the online-play decision and stop (packaging/test/build-guard-test.sh)
     --messages-config) MESSAGES_CONFIG=$2; shift 2;;
     --update-feed) UPDATE_FEED=$2; shift 2;;
     --messages-local)
@@ -223,31 +214,6 @@ if [ "$IDENTITY" != "-" ] && [ "$PROFILE" = "bar" ] && [ "$ALLOW_RELEASE_OVERRID
     echo "  Unset them, or pass --allow-release-overrides if this is deliberate."
     exit 2
   fi
-fi
-
-# The test server setting: a plain host name or IPv4 address and a port. A BAR
-# server is never a "test server": reaching BAR's lobby is --enable-online, with
-# the rules that go with it.
-LOBBY_HOST=""; LOBBY_PORT=""
-if [ "$PROFILE" = "bar" ] && [ "$ONLINE_MODE" = "tellurion" ]; then
-  LOBBY_HOST="${TELLURION_LOBBY%:*}"; LOBBY_PORT="${TELLURION_LOBBY##*:}"
-  case "$LOBBY_PORT" in ''|0*|*[!0-9]*|??????*) echo "FATAL: --lobby-server wants host:port, got $TELLURION_LOBBY"; exit 2;; esac
-  [ "$LOBBY_PORT" -le 65535 ] || { echo "FATAL: --lobby-server wants host:port, got $TELLURION_LOBBY"; exit 2; }
-  [ -n "$LOBBY_HOST" ] && [ "$LOBBY_HOST" != "$TELLURION_LOBBY" ] \
-    || { echo "FATAL: --lobby-server wants host:port, got $TELLURION_LOBBY"; exit 2; }
-  case "$LOBBY_HOST" in *[!A-Za-z0-9.-]*) echo "FATAL: --lobby-server host may hold letters, digits, dots and hyphens only, got $LOBBY_HOST"; exit 2;; esac
-  case "$(printf '%s' "$LOBBY_HOST" | tr 'A-Z' 'a-z' | sed 's/\.*$//')" in
-    beyondallreason.info|*.beyondallreason.info|beyondallreason.dev|*.beyondallreason.dev)
-      echo "FATAL: --lobby-server $LOBBY_HOST is a BAR server. BAR's lobby is --enable-online, not a test server."; exit 2;;
-  esac
-fi
-if [ "$PRINT_CONFIG" = "1" ]; then
-  case "$ONLINE_MODE" in
-    tellurion) echo "online: test server $LOBBY_HOST:$LOBBY_PORT";;
-    bar)       echo "online: BAR's lobby";;
-    *)         echo "online: disabled";;
-  esac
-  exit 0
 fi
 
 case "$PROFILE" in
@@ -503,16 +469,19 @@ if name:
     srv["serverName"] = name
 json.dump(cfg, open(p, "w"), indent=2)' "$RESOURCES/chobby_config.json" "$1" "$2" "${3:-}"
   }
-  rm -f "$RESOURCES/.online-play-disabled" "$RESOURCES/.online-play-tellurion" "$RESOURCES/test-lobby.conf"
+  rm -f "$RESOURCES/.online-play-disabled" "$RESOURCES/.online-play-tellurion"
   if [ "$ONLINE_MODE" = "tellurion" ]; then
-    # The test server setting (tlr-067): plain spring protocol, as BAR's lobby
-    # speaks it. chobby_config.json is NOT touched here. With this file present
-    # the launcher writes the address into the lobby's config at each start,
-    # lets the lobby's Lua sockets reach only that server and this Mac, shows
-    # the notice about how to get an account, and keeps sl-bridge's log upload
-    # (BAR's log server) off. Content still downloads from BAR's CDN and GitHub.
-    printf 'host=%s\nport=%s\nname=%s\n' "$LOBBY_HOST" "$LOBBY_PORT" "Tellurion" > "$RESOURCES/test-lobby.conf"
-    echo "online play: test server $LOBBY_HOST:$LOBBY_PORT$([ "$TELLURION_LOBBY" = "$DEFAULT_TELLURION_LOBBY" ] && echo " (the default)")"
+    # The Tellurion test server (tlr-067): plain spring protocol on 8200, as
+    # BAR's lobby speaks it. The marker makes the launcher show the notice about
+    # how to get an account, and keeps sl-bridge's log upload (BAR's log server)
+    # off: nothing in this mode reaches a BAR server.
+    LOBBY_HOST="${TELLURION_LOBBY%:*}"; LOBBY_PORT="${TELLURION_LOBBY##*:}"
+    case "$LOBBY_PORT" in ''|*[!0-9]*) echo "FATAL: --lobby-server wants host:port, got $TELLURION_LOBBY"; exit 2;; esac
+    [ -n "$LOBBY_HOST" ] && [ "$LOBBY_HOST" != "$TELLURION_LOBBY" ] \
+      || { echo "FATAL: --lobby-server wants host:port, got $TELLURION_LOBBY"; exit 2; }
+    set_lobby "$LOBBY_HOST" "$LOBBY_PORT" "Tellurion"
+    touch "$RESOURCES/.online-play-tellurion"
+    echo "online play: Tellurion test server $LOBBY_HOST:$LOBBY_PORT$([ "$TELLURION_LOBBY" = "$DEFAULT_TELLURION_LOBBY" ] && echo " (the default)")"
   elif [ "$ONLINE_MODE" = "off" ]; then
     # Neuter the lobby-server endpoint so online play cannot connect:
     #   host: online-play-disabled.localhost — .localhost is a reserved TLD
@@ -1099,7 +1068,7 @@ echo "           $DMG"
 echo "signing:   $([ "$IDENTITY" = "-" ] && echo "ad-hoc (local only)" || echo "Developer ID$([ "${#NOTARY_AUTH[@]}" -gt 0 ] && echo " + notarized")")"
 if [ "$PROFILE" = "bar" ]; then
   case "$ONLINE_MODE" in
-    tellurion) echo "online:    test server $TELLURION_LOBBY (Resources/test-lobby.conf)";;
+    tellurion) echo "online:    Tellurion test server $TELLURION_LOBBY";;
     bar)       echo "online:    BAR's lobby (ENABLED)";;
     *)         echo "online:    disabled";;
   esac

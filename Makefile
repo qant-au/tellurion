@@ -32,15 +32,11 @@ ONLINE   ?=
 LOBBY    ?=
 
 VERSION_ARG := $(if $(VERSION),--version "$(VERSION)",)
-# Always explicit, so an exported BAR_ONLINE cannot decide it. The build carries
-# the test server setting (tlr-067, tlr.qant.au:8200) unless ONLINE=0 (online
-# off) or ONLINE=1 (no setting: BAR's standard settings and BAR's own lobby) is
-# given on this command line. LOBBY=host:port names another test server, e.g. a
-# LAN address while testing. ONLINE and LOBBY count only when typed on the make
-# command line: a value left in the environment is ignored.
-ONLINE_CLI  := $(if $(findstring command line,$(origin ONLINE)),$(ONLINE),)
-LOBBY_CLI   := $(if $(findstring command line,$(origin LOBBY)),$(LOBBY),)
-ONLINE_ARG  := $(if $(filter 1,$(ONLINE_CLI)),--enable-online,$(if $(filter 0,$(ONLINE_CLI)),--disable-online,--online-tellurion $(if $(LOBBY_CLI),--lobby-server "$(LOBBY_CLI)",)))
+# Always explicit, so an exported BAR_ONLINE cannot decide it. The lobby is the
+# Tellurion test server (tlr-067) unless ONLINE=0 (online off) or ONLINE=1
+# (BAR's own lobby) is given on this command line. LOBBY=host:port points the
+# Tellurion mode at another server, e.g. a LAN address while testing.
+ONLINE_ARG  := $(if $(filter 1,$(ONLINE)),--enable-online,$(if $(filter 0,$(ONLINE)),--disable-online,--online-tellurion $(if $(LOBBY),--lobby-server "$(LOBBY)",)))
 
 .DEFAULT_GOAL := help
 .PHONY: help app engine-dist certify release engine test clean-artifacts
@@ -55,11 +51,10 @@ help:
 	@echo "                 IDENTITY=\"Developer ID Application: NAME (TEAMID)\" NOTARY_PROFILE=<profile> make release"
 	@echo "  make engine    just the engine binary (no bundle)"
 	@echo "  make clean-artifacts   remove staged bundles/zips/dmgs"
-	@echo "  online play goes to the test server (tlr.qant.au:8200) by default"
-	@echo "  make ... LOBBY=host:port   another test server (a Developer ID build refuses it)"
-	@echo "  make ... ONLINE=0          online play off"
-	@echo "  make ... ONLINE=1          no test server: BAR's standard settings (a Developer ID build refuses it)"
-	@echo "  ONLINE and LOBBY count only on the make command line, not from the environment"
+	@echo "  online play goes to the Tellurion test server (tlr.qant.au:8200) by default"
+	@echo "  LOBBY=host:port make ... another Tellurion server (a Developer ID build refuses it)"
+	@echo "  ONLINE=0 make ...      online play off"
+	@echo "  ONLINE=1 make ...      BAR's own lobby (a Developer ID build refuses it)"
 
 app:
 	packaging/release-build.sh $(VERSION_ARG) $(ONLINE_ARG)
@@ -85,7 +80,6 @@ test:
 	packaging/test/message-check-test.sh
 	packaging/test/engine-nudge-test.sh
 	packaging/test/launcher-test.sh
-	packaging/test/build-guard-test.sh
 	packaging/test/sl-bridge-test.sh
 	packaging/test/updater-test.sh
 	packaging/test/dialog-center-test.sh   # shows real windows; skips without a screen

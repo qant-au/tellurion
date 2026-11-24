@@ -168,89 +168,9 @@ echo "WindowTitle = Beyond All Reason ({version})" >> "$CFG"
 # chobby_config.json the lobby falls back to game="generic", which lacks
 # settingsNames, so Chobby shuts down and the screen goes black. This is the
 # step the official launcher performs and we must replicate.
-#
-# Which lobby server the game talks to is decided here, in the Mac layer, and
-# nowhere else (BAR's lobby code is downloaded content and is not ours to
-# change). Three cases, at most one marker per build (release-build.sh):
-#   test  Resources/test-lobby.conf is present (host=, port=, name=): a test
-#         server. The lobby's config gets that address, the engine's Lua socket
-#         allow-list (TCPAllowConnect) is narrowed to that server plus this Mac,
-#         and a lobby address saved by an earlier run is dropped. The lobby and
-#         its widgets (the analytics widget and the Settings server list both
-#         name a BAR server) can then open a connection to nothing else.
-#   off   Resources/.online-play-disabled: the build pointed the config at an
-#         unreachable endpoint.
-#   bar   neither file: BAR's standard settings, untouched.
-# Taking test-lobby.conf out of the build (--enable-online) is the whole switch
-# back to BAR's own servers; the next launch undoes what test mode wrote.
-TEST_LOBBY="$RES/test-lobby.conf"
-LOBBY_MODE=bar
-[ -f "$RES/.online-play-disabled" ] && LOBBY_MODE=off
-LOBBY_HOST=""; LOBBY_PORT=""; LOBBY_NAME=""
-if [ -f "$TEST_LOBBY" ]; then
-  LOBBY_MODE=test
-  while IFS='=' read -r k v || [ -n "$k" ]; do
-    case "$k" in
-      host) LOBBY_HOST=$v;;
-      port) LOBBY_PORT=$v;;
-      name) LOBBY_NAME=$v;;
-    esac
-  done < "$TEST_LOBBY"
-  # The values go into a JSON file and an engine setting: accept a plain host
-  # name or IPv4 address and a port, nothing else. A file that does not hold
-  # them must never fall through to BAR's servers, so it stops the launch.
-  case "$LOBBY_HOST" in ''|*[!A-Za-z0-9.-]*) LOBBY_HOST="";; esac
-  case "$LOBBY_PORT" in ''|0*|*[!0-9]*|??????*) LOBBY_PORT="";; esac
-  if [ -n "$LOBBY_PORT" ] && [ "$LOBBY_PORT" -gt 65535 ]; then LOBBY_PORT=""; fi
-  case "$LOBBY_NAME" in ''|*[!A-Za-z0-9\ ._-]*) LOBBY_NAME="Test server";; esac
-  if [ -z "$LOBBY_HOST" ] || [ -z "$LOBBY_PORT" ]; then
-    fail_dialog "The application bundle is incomplete (the test server setting cannot be read). Please re-download the game and drag it to Applications again."
-    exit 1
-  fi
-fi
 if [ -f "$RES/chobby_config.json" ]; then
   cp "$RES/chobby_config.json" "$WRITEDIR/chobby_config.json"   # launcher-owned; refresh each run
-  if [ "$LOBBY_MODE" = test ]; then
-    # plutil edits JSON in place and does the quoting (it ships with macOS)
-    { plutil -replace server.address -string "$LOBBY_HOST" "$WRITEDIR/chobby_config.json" \
-        && plutil -replace server.port -integer "$LOBBY_PORT" "$WRITEDIR/chobby_config.json" \
-        && plutil -replace server.serverName -string "$LOBBY_NAME" "$WRITEDIR/chobby_config.json"; } >/dev/null 2>&1 \
-      || { rm -f "$WRITEDIR/chobby_config.json"
-           fail_dialog "The application bundle is incomplete (the lobby configuration cannot be written). Please re-download the game and drag it to Applications again."
-           exit 1; }
-  fi
 fi
-# .lobby-mode records what the last launch set up, so a change of mode is seen.
-LOBBY_STATE="$WRITEDIR/.lobby-mode"
-LOBBY_NOW="$LOBBY_MODE${LOBBY_HOST:+ $LOBBY_HOST:$LOBBY_PORT}"
-LOBBY_WAS="$(cat "$LOBBY_STATE" 2>/dev/null)"
-# Lua socket allow-list (rts/lib/luasocket/src/restrictions.cpp: space-separated
-# host:port rules, port -1 = any). Launcher-owned in test mode and rewritten
-# each run; removed again on the first launch after test mode, and only then,
-# so a value the player set themselves under BAR's settings is left alone.
-# 127.0.0.1 is sl-bridge (a new port each run) and local tools such as BAR's
-# joystick widget.
-if [ "$LOBBY_MODE" = test ] || [ "${LOBBY_WAS%% *}" = test ]; then
-  if grep -q "^TCPAllowConnect[ =]" "$CFG" 2>/dev/null; then
-    grep -v "^TCPAllowConnect[ =]" "$CFG" > "$CFG.tmp" && mv "$CFG.tmp" "$CFG"
-  fi
-fi
-if [ "$LOBBY_MODE" = test ]; then
-  echo "TCPAllowConnect = $LOBBY_HOST:$LOBBY_PORT 127.0.0.1:-1 localhost:-1" >> "$CFG"
-fi
-# The lobby saves the address it last used and prefers it over the config above
-# (it only ignores a saved server<N>.beyondallreason.info). Drop the saved one
-# on every launch in test mode, and once whenever the mode has changed, so an
-# install that used a test server, or a build with online play off, follows the
-# new setting. Under BAR's settings the player's own choice is otherwise kept.
-IGL_DATA="$WRITEDIR/LuaMenu/Config/IGL_data.lua"
-if [ "$LOBBY_MODE" = test ] || [ "$LOBBY_WAS" != "$LOBBY_NOW" ]; then
-  if grep -Eq '^[[:space:]]*server(Address|Port)[[:space:]]*=' "$IGL_DATA" 2>/dev/null; then
-    grep -Ev '^[[:space:]]*server(Address|Port)[[:space:]]*=' "$IGL_DATA" > "$IGL_DATA.tmp" \
-      && mv "$IGL_DATA.tmp" "$IGL_DATA"
-  fi
-fi
-echo "$LOBBY_NOW" > "$LOBBY_STATE"
 # BAR's 87 default springsettings (render/gameplay) — merge only keys the user
 # (or our display seeding above) hasn't set, so our choices always win.
 if [ -f "$RES/default_springsettings.cfg" ]; then
@@ -454,7 +374,7 @@ if [ "${BAR_SKIP_CONTENT_CHECK:-0}" != "1" ]; then
     fi
     if [ -x "$HERE/consent-dialog" ]; then
       # 2) ONLINE PLAY IS DISABLED notice — LOCAL, shown once per NOTICE_VERSION.
-      #    A build has at most one of the two lobby markers (see LOBBY_MODE).
+      #    A build has at most one of the two markers (release-build.sh).
       if [ -f "$RES/.online-play-disabled" ] && \
          [ "$(cat "$NOTICE_ACK" 2>/dev/null)" != "$NOTICE_VERSION" ]; then
         "$HERE/consent-dialog" --notice "ONLINE PLAY IS DISABLED in this build. No request to connect to Beyond All Reason's community servers has been made for it yet.
@@ -463,12 +383,12 @@ The game opens on a sign-in screen first. Press Cancel to reach everything that 
 
 If you do try to sign in or open an online menu, it will fail to reach the server. There is no in-game message explaining why, because online play is blocked outside the game, not inside it." || true
         echo "$NOTICE_VERSION" > "$NOTICE_ACK"
-      # 2b) the test server notice (tlr-067): same acknowledgement.
-      elif [ "$LOBBY_MODE" = test ] && \
+      # 2b) the Tellurion test server notice (tlr-067): same acknowledgement.
+      elif [ -f "$RES/.online-play-tellurion" ] && \
          [ "$(cat "$NOTICE_ACK" 2>/dev/null)" != "$NOTICE_VERSION" ]; then
         "$HERE/consent-dialog" --notice "ONLINE PLAY USES THE TELLURION TEST SERVER, not Beyond All Reason's community servers. It is a small server for testing this Mac port, and it can be reset or switched off at any time.
 
-Sign in with an account from the server's owner: this server refuses registration from inside the game. To ask for an account or a new password, open an issue at https://github.com/qant-au/tellurion/issues. Never post a password or an email address there. The connection to this server is not encrypted, and the password you are given is for this server only. The lobby's own account and password links go to Beyond All Reason's website, and they do not work for this server.
+Sign in with an account from the server's owner: there is no sign-up in the game. To ask for an account or a new password, open an issue at https://github.com/qant-au/tellurion/issues. Never post a password or an email address there. The lobby's own account and password links go to Beyond All Reason's website, and they do not work for this server.
 
 Press Cancel on the sign-in screen to play offline: skirmish against AI, replays, and local-network (LAN) games." || true
         echo "$NOTICE_VERSION" > "$NOTICE_ACK"
@@ -752,7 +672,7 @@ start_bridge() {
   ENGINE_VERSION="$(/usr/libexec/PlistBuddy -c "Print :EngineVersion" "$CONTENTS/Info.plist" 2>/dev/null || true)"
   "$HERE/sl-bridge" --writedir "$WRITEDIR" --prd "$HERE/pr-downloader" \
     --engine "$HERE/spring" --engine-version "$ENGINE_VERSION" \
-    --config "$RES/launcher_extras.json" --online "$( [ "$LOBBY_MODE" = bar ] && echo 1 || echo 0 )" \
+    --config "$RES/launcher_extras.json" --online "$( [ -f "$RES/.online-play-disabled" ] || [ -f "$RES/.online-play-tellurion" ] && echo 0 || echo 1 )" \
     --parent-pid "$$" --log "$WRITEDIR/sl-bridge.log" >/dev/null 2>&1 &
   BRIDGE_PID=$!
   # give it a moment to write sl-connection.json before the lobby looks for it
